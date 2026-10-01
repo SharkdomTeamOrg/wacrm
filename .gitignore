@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated migration bundle — rebuild from supabase/migrations/ rather than editing
+supabase/apply/

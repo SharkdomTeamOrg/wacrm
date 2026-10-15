@@ -59,6 +59,10 @@ export type MetaSendComponent =
       sub_type: 'url' | 'quick_reply' | 'copy_code';
       index: string;
       parameters: MetaSendParameter[];
+    }
+  | {
+      type: 'carousel';
+      cards: { card_index: number; components: MetaSendComponent[] }[];
     };
 
 type MetaSendParameter =
@@ -212,6 +216,48 @@ function buildButtonComponent(
 }
 
 /**
+ * Carousel cards: Meta needs every card's media header on each send
+ * (same as a top-level media header), plus a payload for each
+ * quick-reply button so the webhook can tell which card was tapped.
+ * Card bodies and URLs are static (validator), so nothing else is sent.
+ */
+function buildCarouselComponent(template: MessageTemplate): MetaSendComponent | null {
+  const cards = template.carousel_cards;
+  if (!cards?.length) return null;
+  return {
+    type: 'carousel',
+    cards: cards.map((card, ci) => {
+      if (!card.header_media_url) {
+        throw new Error(
+          `Carousel card #${ci + 1} has no media URL — edit the template and re-upload its ${card.header_type}.`,
+        );
+      }
+      const media = { link: card.header_media_url };
+      const components: MetaSendComponent[] = [
+        {
+          type: 'header',
+          parameters: [
+            card.header_type === 'video'
+              ? { type: 'video', video: media }
+              : { type: 'image', image: media },
+          ],
+        },
+      ];
+      card.buttons.forEach((btn, bi) => {
+        if (btn.type !== 'QUICK_REPLY') return;
+        components.push({
+          type: 'button',
+          sub_type: 'quick_reply',
+          index: String(bi),
+          parameters: [{ type: 'payload', payload: `card${ci}_${btn.text}` }],
+        });
+      });
+      return { card_index: ci, components };
+    }),
+  };
+}
+
+/**
  * Build the full `components` array for the send-message payload.
  * Returns an empty array when the template is fully static (no
  * variables, no media header), which is a valid Meta request.
@@ -232,5 +278,7 @@ export function buildSendComponents(
       if (component) out.push(component);
     });
   }
+  const carousel = buildCarouselComponent(template);
+  if (carousel) out.push(carousel);
   return out;
 }

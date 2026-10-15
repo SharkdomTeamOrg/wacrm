@@ -1,5 +1,10 @@
 {
   "LoginPage": {
+    "resendConfirmation": "확인 이메일 다시 보내기",
+    "resendSending": "보내는 중…",
+    "resendSent": "보냈습니다 — 받은편지함(및 스팸함)을 확인하세요.",
+    "continueWithGoogle": "Google로 계속하기",
+    "orDivider": "또는",
     "titleAccept": "로그인하여 수락하기",
     "titleWelcome": "다시 오신 것을 환영합니다",
     "descAccept": "로그인하시면 초대 페이지로 이동합니다.",
@@ -17,6 +22,8 @@
     "linkInvalid": "이 링크로는 로그인할 수 없습니다. 이메일 인증 중이었다면 이미 인증이 완료되었을 수 있으니 아래에서 로그인하세요. 비밀번호 재설정은 새 링크를 요청한 뒤 요청한 브라우저에서 열어 주세요."
   },
   "Sidebar": {
+    "inboxNumber": "받은편지함 번호",
+    "allNumbers": "모든 번호",
     "title": "WhatsApp용 CRM 템플릿",
     "primaryNav": "기본 메뉴",
     "dashboard": "대시보드",
@@ -295,7 +302,10 @@
       "finalUrl": "최종 URL: {url}",
       "back": "뒤로",
       "cancel": "취소",
-      "send": "템플릿 보내기"
+      "send": "템플릿 보내기",
+      "headerMediaLabel": "헤더 ({kind})",
+      "headerMediaUpload": "파일 업로드",
+      "headerMediaHint": "이 템플릿에는 저장된 헤더 미디어가 없습니다 (예: Meta에서 동기화됨). 공개 HTTPS 링크를 붙여넣거나 파일을 업로드하세요."
     },
     "sidebar": {
       "contactInfo": "연락처 정보",
@@ -820,6 +830,8 @@
         }
       },
       "scheduleSend": {
+        "sendFrom": "발신 번호",
+        "defaultNumber": "기본",
         "title": "검토 및 전송",
         "subtitle": "브로드캐스트 이름을 입력하고 전송을 확인하세요.",
         "broadcastName": "브로드캐스트 이름",
@@ -1337,6 +1349,9 @@
       "loading": "불러오는 중…"
     },
     "members": {
+      "leaveBtn": "나가기",
+      "leaveConfirm": "이 계정에서 나가시겠습니까? 받은편지함과 데이터에 접근할 수 없게 되며 개인 계정으로 이동합니다. 관리자가 다시 초대할 수 있습니다.",
+      "leaveFailed": "계정에서 나갈 수 없습니다",
       "title": "팀원",
       "description": "이 계정에 접근 권한이 있는 사람들입니다. 역할에 따라 각 팀원이 할 수 있는 작업이 결정됩니다.",
       "inviteMember": "멤버 초대",
@@ -1375,6 +1390,8 @@
       "removeBtn": "멤버 제거"
     },
     "invite": {
+      "sendViaEmail": "이메일로 보내기",
+      "emailSubject": "wacrm의 {accountName}에 초대되었습니다",
       "inviteCreated": "초대가 생성되었습니다",
       "inviteCreatedDesc": "이 링크를 새 팀원과 공유하세요. <bold>{role}</bold> 역할로 가입(또는 로그인)해 계정에 합류할 수 있습니다. 링크는 <bold>{days}일</bold> 동안 유효합니다.",
       "inviteLink": "초대 링크",
@@ -1553,7 +1570,22 @@
       "toastInvalidDocument": "헤더 문서는 PDF, Word, PowerPoint, Excel 또는 텍스트 파일이어야 합니다.",
       "toastMediaTooLarge": "파일 크기가 {size}MB입니다 — 업로드 제한은 {max}MB입니다.",
       "toastUploadSuccess": "파일이 업로드되었습니다.",
-      "toastUploadFailed": "업로드에 실패했습니다."
+      "toastUploadFailed": "업로드에 실패했습니다.",
+      "templateType": "템플릿 유형",
+      "typeStandard": "기본",
+      "typeCarousel": "캐러셀 (넘겨보는 카드)",
+      "carouselHint": "짧은 메시지와 함께 2–10개의 넘겨보는 카드를 보냅니다. 각 카드에는 이미지 또는 동영상, 텍스트, 버튼이 있으며 모든 카드는 같은 미디어 유형과 같은 버튼을 사용합니다.",
+      "carouselBadge": "캐러셀 · 카드 {count}개",
+      "cardMediaType": "카드 미디어",
+      "cardButtonsLayout": "카드 버튼 (모든 카드 동일)",
+      "addCardButton": "카드 버튼 추가",
+      "cards": "카드",
+      "addCard": "카드 추가",
+      "cardTitle": "카드 {n}",
+      "removeCard": "카드 삭제",
+      "cardBodyPlaceholder": "카드 텍스트 (최대 160자)",
+      "cardUrlPlaceholder": "https://example.com/offer",
+      "preview": "미리보기"
     },
     "roles": {
       "admin": "관리자",
@@ -1668,7 +1700,18 @@
       "phoneNumberIdNotNumeric": "전화번호 ID는 숫자만 포함해야 합니다. 전화번호가 아닌, Meta → WhatsApp → API 설정에 표시된 숫자 ID를 복사하세요.",
       "wabaIdNotNumeric": "WhatsApp 비즈니스 계정 ID는 숫자만 포함해야 합니다. Meta → WhatsApp → API 설정에서 복사하세요.",
       "wabaSubscribed": "WhatsApp 비즈니스 계정이 이 앱에 구독되어 있어 수신 웹훅을 받을 수 있습니다.",
-      "wabaNotSubscribed": "WhatsApp 비즈니스 계정이 이 앱에 구독되어 있지 않아 Meta가 수신 웹훅을 전달하지 않습니다. 액세스 토큰을 다시 입력하고 저장해 구독하세요."
+      "wabaNotSubscribed": "WhatsApp 비즈니스 계정이 이 앱에 구독되어 있지 않아 Meta가 수신 웹훅을 전달하지 않습니다. 액세스 토큰을 다시 입력하고 저장해 구독하세요.",
+      "numbersTitle": "WhatsApp 번호",
+      "numbersDesc": "하나 이상의 번호(국가 무관)를 연결하세요. 번호마다 별도의 받은편지함이 있으며, 답장은 항상 고객이 메시지를 보낸 번호로 발송됩니다.",
+      "addNumber": "번호 추가",
+      "noNumbersYet": "아직 연결된 번호가 없습니다 — 아래 양식을 작성하세요.",
+      "defaultBadge": "기본",
+      "makeDefault": "기본으로 설정",
+      "makeDefaultFailed": "기본 번호를 변경할 수 없습니다",
+      "defaultUpdated": "기본 번호가 변경되었습니다",
+      "addingNewNumber": "새 번호 추가 중 — 아래에 자격 증명을 입력하고 저장하세요.",
+      "numberLabel": "라벨",
+      "numberLabelPlaceholder": "예: 미국 영업, 영국 지원"
     },
     "sections": {
       "overview": "개요",
@@ -1900,6 +1943,8 @@
     }
   },
   "SignupPage": {
+    "continueWithGoogle": "Google로 계속하기",
+    "orDivider": "또는",
     "passwordsMismatch": "비밀번호가 일치하지 않습니다",
     "passwordTooShort": "비밀번호는 6자 이상이어야 합니다",
     "checkEmailTitle": "이메일을 확인하세요",

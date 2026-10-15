@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -16,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MessageSquare, UsersRound } from "lucide-react";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in";
 
 // `useSearchParams` opts the component out of static prerendering
 // unless it sits under a Suspense boundary. We split the form into
@@ -51,7 +53,29 @@ function LoginPageInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Set when sign-in fails because the address was never confirmed —
+  // offers a fresh confirmation email instead of a dead end.
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
   const supabase = createClient();
+  const nextPath = inviteToken ? `/join/${encodeURIComponent(inviteToken)}` : "/dashboard";
+
+  const handleResend = async () => {
+    setResendState("sending");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setResendState("idle");
+      return;
+    }
+    setResendState("sent");
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +89,8 @@ function LoginPageInner() {
 
     if (error) {
       setError(error.message);
+      setUnconfirmed(error.code === "email_not_confirmed");
+      setResendState("idle");
       setLoading(false);
       return;
     }
@@ -113,6 +139,20 @@ function LoginPageInner() {
             {error && (
               <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
                 {error}
+                {unconfirmed && (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendState !== "idle"}
+                    className="mt-2 block font-medium text-primary hover:text-primary/80 disabled:text-muted-foreground"
+                  >
+                    {resendState === "sent"
+                      ? t("resendSent")
+                      : resendState === "sending"
+                        ? t("resendSending")
+                        : t("resendConfirmation")}
+                  </button>
+                )}
               </div>
             )}
 
@@ -143,9 +183,8 @@ function LoginPageInner() {
                   {t('forgotPassword')}
                 </Link>
               </div>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder={t('passwordPlaceholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -162,6 +201,14 @@ function LoginPageInner() {
               {loading ? t('signingIn') : t('signIn')}
             </Button>
           </form>
+
+          <div className="mt-4">
+            <GoogleSignInButton
+              next={nextPath}
+              label={t("continueWithGoogle")}
+              dividerLabel={t("orDivider")}
+            />
+          </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {t('noAccount')}{" "}

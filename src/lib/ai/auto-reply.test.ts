@@ -209,6 +209,8 @@ describe('dispatchInboundToAiReply — typing indicator (#527)', () => {
     expect(h.loadAccountMetaCredentials).toHaveBeenCalledWith(
       expect.anything(),
       'acct-1',
+      // typing indicator goes out from the thread's own number (044)
+      'conv-1',
     )
     expect(h.sendTypingIndicator).toHaveBeenCalledTimes(1)
     expect(h.sendTypingIndicator).toHaveBeenCalledWith({

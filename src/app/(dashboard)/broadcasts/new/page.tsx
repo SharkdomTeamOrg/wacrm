@@ -44,6 +44,8 @@ export default function NewBroadcastPage() {
     Record<string, { type: 'static' | 'field' | 'custom_field'; value: string }>
   >({});
   const [headerMediaUrl, setHeaderMediaUrl] = useState('');
+  // Sending number (migration 044); '' = the account default.
+  const [fromNumberId, setFromNumberId] = useState('');
   const [name, setName] = useState('');
 
   async function handleSend() {
@@ -62,6 +64,7 @@ export default function NewBroadcastPage() {
         },
         variables,
         headerMediaUrl,
+        whatsappConfigId: fromNumberId || null,
       });
       router.push(`/broadcasts/${broadcastId}`);
     } catch (err) {
@@ -112,6 +115,7 @@ export default function NewBroadcastPage() {
         type: audience.type,
         tagIds: audience.tagIds,
       },
+      whatsapp_config_id: fromNumberId || null,
       status: 'draft',
       total_recipients: 0,
       sent_count: 0,
@@ -226,6 +230,8 @@ export default function NewBroadcastPage() {
               onBack={() => setCurrentStep(2)}
               isProcessing={isProcessing}
               progress={progress}
+              fromNumberId={fromNumberId}
+              onFromNumberChange={setFromNumberId}
             />
           )}
         </div>

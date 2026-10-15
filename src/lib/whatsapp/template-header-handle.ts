@@ -1,5 +1,5 @@
 import { uploadResumableMedia } from '@/lib/whatsapp/meta-api'
-import { MEDIA_HEADER_SPECS, isMediaHeaderKind } from '@/lib/whatsapp/media-header-types'
+import { MEDIA_HEADER_SPECS, isMediaHeaderKind, type MediaHeaderKind } from '@/lib/whatsapp/media-header-types'
 import type { TemplatePayload } from '@/lib/whatsapp/template-validators'
 import { isDeliverableUrl } from '@/lib/webhooks/ssrf'
 
@@ -27,11 +27,26 @@ export async function ensureMediaHeaderHandle(
   payload: TemplatePayload,
   accessToken: string,
 ): Promise<void> {
+  // Carousel cards each carry their own media header and need their
+  // own handle — same rules as the top-level header.
+  for (const card of payload.carousel_cards ?? []) {
+    if (card.header_handle || !card.header_media_url) continue
+    card.header_handle = await uploadHeaderSample(card.header_type, card.header_media_url, accessToken)
+  }
+
   const kind = payload.header_type
   if (!isMediaHeaderKind(kind)) return
   if (payload.header_handle) return // already have one
   if (!payload.header_media_url) return // validator already requires url-or-handle
 
+  payload.header_handle = await uploadHeaderSample(kind, payload.header_media_url, accessToken)
+}
+
+async function uploadHeaderSample(
+  kind: MediaHeaderKind,
+  mediaUrl: string,
+  accessToken: string,
+): Promise<string> {
   const spec = MEDIA_HEADER_SPECS[kind]
 
   const appId = process.env.META_APP_ID
@@ -47,7 +62,7 @@ export async function ensureMediaHeaderHandle(
   // link-local / reserved address. Same guard as the two other
   // outbound-fetch call sites (see lib/webhooks/ssrf.ts) — matching the
   // unreachable-host message keeps the failure from being an oracle.
-  if (!(await isDeliverableUrl(payload.header_media_url))) {
+  if (!(await isDeliverableUrl(mediaUrl))) {
     throw new Error(UNREACHABLE_MESSAGE)
   }
 
@@ -55,7 +70,7 @@ export async function ensureMediaHeaderHandle(
   // a manually-pasted public link).
   let res: Response
   try {
-    res = await fetch(payload.header_media_url, {
+    res = await fetch(mediaUrl, {
       // Do NOT follow redirects — a public URL could 3xx-bounce to an
       // internal address, defeating the guard above. Bound the request so
       // a hung host can't tie up the template-submit handler.
@@ -96,5 +111,5 @@ export async function ensureMediaHeaderHandle(
     mimeType,
     bytes,
   })
-  payload.header_handle = handle
+  return handle
 }

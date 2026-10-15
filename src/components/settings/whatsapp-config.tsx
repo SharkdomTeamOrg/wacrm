@@ -13,7 +13,10 @@ import {
   Zap,
   AlertTriangle,
   RotateCcw,
+  Plus,
+  Star,
 } from 'lucide-react';
+import { flagForPhone, numberName } from '@/lib/whatsapp/number-label';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useTranslations } from 'next-intl';
@@ -98,6 +101,11 @@ export function WhatsAppConfig() {
   // again and overwrites whatever the user typed but hadn't saved yet.
   const loadedAccountIdRef = useRef<string | null>(null);
 
+  // Multi-number (migration 044): every number on the account, and which
+  // one the form below is editing (null = adding a new number).
+  const [numbers, setNumbers] = useState<WhatsAppConfigType[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [label, setLabel] = useState('');
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [wabaId, setWabaId] = useState('');
   const [accessToken, setAccessToken] = useState('');
@@ -140,7 +148,12 @@ export function WhatsAppConfig() {
       ? `${window.location.origin}/api/whatsapp/webhook`
       : '';
 
-  const fetchConfig = useCallback(async (acctId: string) => {
+  const fetchConfig = useCallback(async (
+    acctId: string,
+    // Which number to show: an id, 'new' for the empty add form, or
+    // undefined for the account default.
+    pick?: string | 'new',
+  ) => {
     setLoading(true);
     try {
       // Load form values from Supabase (shows what's in DB).
@@ -149,18 +162,25 @@ export function WhatsAppConfig() {
       // account sees the same saved configuration. UNIQUE(account_id)
       // on the table guarantees the .maybeSingle() return type
       // remains accurate.
-      const { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from('whatsapp_config')
         .select('*')
         .eq('account_id', acctId)
-        .maybeSingle();
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: true });
 
       if (error) {
         console.error('Failed to load config row:', error);
       }
+      const all = (rows ?? []) as WhatsAppConfigType[];
+      setNumbers(all);
+      const data =
+        pick === 'new' ? null : (all.find((r) => r.id === pick) ?? all[0] ?? null);
+      setSelectedId(data?.id ?? null);
 
       if (data) {
         setConfig(data);
+        setLabel(data.label || '');
         setPhoneNumberId(data.phone_number_id || '');
         setWabaId(data.waba_id || '');
         setAccessToken(MASKED_TOKEN);
@@ -176,8 +196,10 @@ export function WhatsAppConfig() {
         setMirrorMedia(data.mirror_inbound_media !== false);
       } else {
         setConfig(null);
+        setLabel('');
         setPhoneNumberId('');
-        setWabaId('');
+        // A new number usually sits in the same WABA as the others.
+        setWabaId(all[0]?.waba_id || '');
         setAccessToken('');
         setVerifyToken('');
         setPin('');
@@ -191,7 +213,7 @@ export function WhatsAppConfig() {
       // Then verify health via the API (decrypts token + pings Meta)
       if (data) {
         try {
-          const res = await fetch('/api/whatsapp/config', { method: 'GET' });
+          const res = await fetch(`/api/whatsapp/config?id=${data.id}`, { method: 'GET' });
           const payload = await res.json();
 
           if (payload.connected) {
@@ -254,7 +276,7 @@ export function WhatsAppConfig() {
       const { error } = await supabase
         .from('whatsapp_config')
         .update({ mirror_inbound_media: next })
-        .eq('account_id', accountId);
+        .eq('id', config.id);
       if (error) throw new Error(error.message);
       setConfig({ ...config, mirror_inbound_media: next });
     } catch (error) {
@@ -292,6 +314,9 @@ export function WhatsAppConfig() {
       // and writing direct to Supabase stores the token in plaintext,
       // which then fails decryption on every subsequent health check.
       const payload: Record<string, unknown> = {
+        // Which number this save edits; omitted = add a new number.
+        ...(config ? { id: config.id } : {}),
+        label: label.trim() || null,
         phone_number_id: phoneNumberId.trim(),
         waba_id: wabaId.trim() || null,
         // Only sent when the user actually typed one. Left out otherwise
@@ -379,7 +404,20 @@ export function WhatsAppConfig() {
         setPin('');
       }
 
-      if (accountId) await fetchConfig(accountId);
+      // A newly added number has no id client-side yet — find it by its
+      // phone number id once the list reloads.
+      if (accountId) {
+        await fetchConfig(accountId, config?.id);
+        if (!config) {
+          const { data: saved } = await supabase
+            .from('whatsapp_config')
+            .select('id')
+            .eq('account_id', accountId)
+            .eq('phone_number_id', phoneNumberId.trim())
+            .maybeSingle();
+          if (saved) await fetchConfig(accountId, saved.id);
+        }
+      }
     } catch (err) {
       console.error('Save error:', err);
       toast.error(t('saveFailed'));
@@ -391,7 +429,7 @@ export function WhatsAppConfig() {
   async function handleTestConnection() {
     try {
       setTesting(true);
-      const res = await fetch('/api/whatsapp/config', { method: 'GET' });
+      const res = await fetch(`/api/whatsapp/config?id=${config?.id ?? ''}`, { method: 'GET' });
       const payload = await res.json();
 
       if (payload.connected) {
@@ -426,7 +464,7 @@ export function WhatsAppConfig() {
     setVerifyingRegistration(true);
     setRegistrationProbe(null);
     try {
-      const res = await fetch('/api/whatsapp/config/verify-registration', {
+      const res = await fetch(`/api/whatsapp/config/verify-registration?id=${config?.id ?? ''}`, {
         method: 'GET',
       });
       const data = (await res.json()) as RegistrationProbe;
@@ -439,7 +477,7 @@ export function WhatsAppConfig() {
           { duration: 8000 },
         );
       }
-      if (accountId) await fetchConfig(accountId);
+      if (accountId) await fetchConfig(accountId, config?.id);
     } catch (err) {
       console.error('verify-registration failed:', err);
       toast.error(t('verifyEndpointUnreachable'));
@@ -455,7 +493,8 @@ export function WhatsAppConfig() {
 
     try {
       setResetting(true);
-      const res = await fetch('/api/whatsapp/config', { method: 'DELETE' });
+      if (!config) return;
+      const res = await fetch(`/api/whatsapp/config?id=${config.id}`, { method: 'DELETE' });
       const data = await res.json();
 
       if (!res.ok) {
@@ -464,6 +503,11 @@ export function WhatsAppConfig() {
       }
 
       toast.success(t('resetDone'));
+      // Show whichever number is left (or the empty add form).
+      if (accountId) {
+        await fetchConfig(accountId);
+        return;
+      }
       setConfig(null);
       setPhoneNumberId('');
       setWabaId('');
@@ -483,6 +527,22 @@ export function WhatsAppConfig() {
     } finally {
       setResetting(false);
     }
+  }
+
+  async function handleMakeDefault(id: string) {
+    const res = await fetch('/api/whatsapp/config', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, is_default: true }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || t('makeDefaultFailed'));
+      return;
+    }
+    toast.success(t('defaultUpdated'));
+    // Just move the badge — a full reload would flash the panel to a spinner.
+    setNumbers((prev) => prev.map((n) => ({ ...n, is_default: n.id === id })));
   }
 
   function handleCopyWebhookUrl() {
@@ -548,6 +608,91 @@ export function WhatsAppConfig() {
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       {/* Main config form */}
       <div className="space-y-6">
+        {/* Connected numbers (migration 044) */}
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+            <div>
+              <CardTitle className="text-foreground">{t('numbersTitle')}</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                {t('numbersDesc')}
+              </CardDescription>
+            </div>
+            {canEditSettings && numbers.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => accountId && fetchConfig(accountId, 'new')}
+                disabled={selectedId === null}
+              >
+                <Plus className="size-4" />
+                {t('addNumber')}
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {numbers.length === 0 && (
+              <p className="text-sm text-muted-foreground">{t('noNumbersYet')}</p>
+            )}
+            {numbers.map((n) => (
+              <div
+                key={n.id}
+                className={
+                  'flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ' +
+                  (n.id === selectedId
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:bg-muted/50')
+                }
+              >
+                {/* The name area selects the number for editing; kept a real
+                    button separate from "Make default" (no nested controls). */}
+                <button
+                  type="button"
+                  aria-current={n.id === selectedId ? 'true' : undefined}
+                  onClick={() => accountId && n.id !== selectedId && fetchConfig(accountId, n.id)}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                >
+                  <span className="text-xl leading-none" aria-hidden>
+                    {flagForPhone(n.display_phone_number)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-foreground">{numberName(n)}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {n.display_phone_number || n.phone_number_id}
+                    </span>
+                  </span>
+                </button>
+                {n.is_default ? (
+                  <span className="rounded border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    {t('defaultBadge')}
+                  </span>
+                ) : (
+                  canEditSettings && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground"
+                      onClick={() => void handleMakeDefault(n.id)}
+                    >
+                      <Star className="size-3.5" />
+                      {t('makeDefault')}
+                    </Button>
+                  )
+                )}
+                <span
+                  className={
+                    'size-2 shrink-0 rounded-full ' +
+                    (n.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500')
+                  }
+                  title={n.status}
+                />
+              </div>
+            ))}
+            {selectedId === null && numbers.length > 0 && (
+              <p className="text-xs text-primary">{t('addingNewNumber')}</p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Corrupted-token reset banner */}
         {showResetBanner && (
           <Alert className="bg-amber-950/40 border-amber-600/40">
@@ -748,6 +893,17 @@ export function WhatsAppConfig() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">{t('numberLabel')}</Label>
+              <Input
+                placeholder={t('numberLabelPlaceholder')}
+                value={label}
+                maxLength={60}
+                onChange={(e) => setLabel(e.target.value)}
+                className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t('phoneNumberId')}</Label>
               <Input

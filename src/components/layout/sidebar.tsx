@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
+import { InboxNumberSwitcher } from "@/components/inbox/number-switcher";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
@@ -263,6 +264,11 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                       </span>
                     )}
                   </Link>
+                  {item.href === "/inbox" && (
+                    <Suspense fallback={null}>
+                      <InboxNumberSwitcher />
+                    </Suspense>
+                  )}
                 </li>
               );
             })}

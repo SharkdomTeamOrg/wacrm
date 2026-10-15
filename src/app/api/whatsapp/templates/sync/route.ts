@@ -1,3 +1,5 @@
+import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve'
+import type { WhatsAppConfig as WhatsAppConfigRow } from '@/types'
 import { NextResponse } from 'next/server'
 import {
   ForbiddenError,
@@ -7,7 +9,7 @@ import {
 } from '@/lib/auth/account'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import { normalizeStatus } from '@/lib/whatsapp/template-status-normalize'
-import type { TemplateButton, TemplateSampleValues } from '@/types'
+import type { CarouselCard, TemplateButton, TemplateSampleValues } from '@/types'
 
 /**
  * Sync message templates from Meta → local message_templates table.
@@ -38,6 +40,7 @@ interface MetaTemplateComponent {
   text?: string
   format?: string
   buttons?: MetaButton[]
+  cards?: { components?: MetaTemplateComponent[] }[]
   example?: {
     header_text?: string[]
     header_handle?: string[]
@@ -112,6 +115,25 @@ function parseButtons(metaButtons: MetaButton[] | undefined): TemplateButton[] {
   return out
 }
 
+// Synced cards only carry Meta's sample handle, not a reusable link, so
+// header_media_url stays empty and a send asks the user to re-upload.
+// ponytail: no media URL on synced carousels; re-upload via Edit to send.
+function parseCarouselCards(
+  carousel: MetaTemplateComponent | undefined,
+): CarouselCard[] | null {
+  if (!carousel?.cards?.length) return null
+  return carousel.cards.map((card) => {
+    const comps = card.components ?? []
+    const header = comps.find((c) => c.type === 'HEADER')
+    return {
+      header_type: header?.format?.toUpperCase() === 'VIDEO' ? 'video' : 'image',
+      header_handle: header?.example?.header_handle?.[0],
+      body_text: comps.find((c) => c.type === 'BODY')?.text ?? '',
+      buttons: parseButtons(comps.find((c) => c.type === 'BUTTONS')?.buttons),
+    }
+  })
+}
+
 function extractSampleValues(
   body: MetaTemplateComponent | undefined,
   header: MetaTemplateComponent | undefined,
@@ -135,13 +157,9 @@ export async function POST() {
     // Resolving account_id off the profile only proved membership.
     const { supabase, accountId, userId } = await requireRole('admin')
 
-    const { data: config, error: configError } = await supabase
-      .from('whatsapp_config')
-      .select('*')
-      .eq('account_id', accountId)
-      .single()
+    const config = await getWhatsAppConfig<WhatsAppConfigRow>(supabase, accountId, {})
 
-    if (configError || !config) {
+    if (!config) {
       return NextResponse.json(
         {
           error:
@@ -232,6 +250,9 @@ export async function POST() {
         body_text: body?.text ?? '',
         footer_text: footer?.text ?? null,
         buttons: parsedButtons.length ? parsedButtons : null,
+        carousel_cards: parseCarouselCards(
+          (t.components ?? []).find((c) => c.type === 'CAROUSEL'),
+        ),
         sample_values: sampleValues,
         status: normalizeStatus(t.status),
         meta_template_id: t.id,
@@ -241,7 +262,7 @@ export async function POST() {
 
       const { data: existing, error: lookupErr } = await supabase
         .from('message_templates')
-        .select('id')
+        .select('id, carousel_cards')
         .eq('account_id', accountId)
         .eq('name', t.name)
         .eq('language', t.language)
@@ -257,6 +278,12 @@ export async function POST() {
       }
 
       if (existing?.id) {
+        // Meta doesn't return our card media links — keep the ones
+        // stored at submit time so the carousel stays sendable.
+        const localCards = existing.carousel_cards as CarouselCard[] | null
+        row.carousel_cards?.forEach((card, i) => {
+          card.header_media_url = localCards?.[i]?.header_media_url
+        })
         const { error: updErr } = await supabase
           .from('message_templates')
           .update(row)

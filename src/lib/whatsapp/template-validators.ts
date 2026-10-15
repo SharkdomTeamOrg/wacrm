@@ -16,6 +16,7 @@
  */
 
 import type {
+  CarouselCard,
   MessageTemplate,
   TemplateButton,
   TemplateSampleValues,
@@ -30,6 +31,10 @@ export const TEMPLATE_LIMITS = {
   maxUrlButtons: 2,
   maxPhoneButtons: 1,
   maxCopyCodeButtons: 1,
+  carouselMinCards: 2,
+  carouselMaxCards: 10,
+  carouselCardBodyMaxLength: 160,
+  carouselMaxButtonsPerCard: 2,
   /** Meta: lowercase a-z, digits, underscore. Up to 512 chars. */
   nameRegex: /^[a-z0-9_]{1,512}$/,
 } as const;
@@ -45,6 +50,7 @@ export interface TemplatePayload {
   body_text: string;
   footer_text?: string;
   buttons?: TemplateButton[];
+  carousel_cards?: CarouselCard[];
   sample_values?: TemplateSampleValues;
 }
 
@@ -92,6 +98,14 @@ export function validateBody(bodyText: string): number[] {
   if (bodyText.length > TEMPLATE_LIMITS.bodyMaxLength) {
     throw new Error(
       `Body text exceeds ${TEMPLATE_LIMITS.bodyMaxLength} chars (got ${bodyText.length}).`,
+    );
+  }
+  // `{{}}` / `{{name}}` would otherwise count as "no variables" and reach
+  // Meta as literal text (or be rejected there with an opaque error).
+  const bad = bodyText.match(/\{\{(?!\d+\}\})[^}]*\}\}/);
+  if (bad) {
+    throw new Error(
+      `Body contains "${bad[0]}" — use numbered variables {{1}}, {{2}}, … instead.`,
     );
   }
   const indices = extractVariableIndices(bodyText);
@@ -279,6 +293,101 @@ export function validateButtons(buttons: TemplateButton[] | undefined): void {
 }
 
 /**
+ * Media-card carousel rules (Meta): 2–10 cards, every card has an
+ * image/video header of the SAME format, a body (≤160 chars) and 1–2
+ * buttons whose types appear in the same order on every card. The
+ * top-level message is body-only — no header, footer or buttons.
+ *
+ * v1 keeps card content static: no {{N}} in card bodies or card URLs,
+ * so every send path (inbox, contact, broadcast) works without extra
+ * per-card inputs.
+ */
+export function validateCarousel(payload: TemplatePayload): void {
+  const cards = payload.carousel_cards;
+  if (!cards) return;
+
+  if (payload.header_type) {
+    throw new Error('Carousel templates cannot have a top-level header — each card has its own.');
+  }
+  if (payload.footer_text?.trim()) {
+    throw new Error('Carousel templates cannot have a footer (Meta rule).');
+  }
+  if (payload.buttons?.length) {
+    throw new Error('Carousel templates cannot have top-level buttons — add buttons to each card.');
+  }
+  if (
+    cards.length < TEMPLATE_LIMITS.carouselMinCards ||
+    cards.length > TEMPLATE_LIMITS.carouselMaxCards
+  ) {
+    throw new Error(
+      `Carousel needs ${TEMPLATE_LIMITS.carouselMinCards}–${TEMPLATE_LIMITS.carouselMaxCards} cards (got ${cards.length}).`,
+    );
+  }
+
+  const first = cards[0];
+  const buttonSignature = (c: CarouselCard) =>
+    (c.buttons ?? []).map((b) => b.type).join(',');
+
+  cards.forEach((card, ci) => {
+    const where = `Card #${ci + 1}`;
+    if (card.header_type !== 'image' && card.header_type !== 'video') {
+      throw new Error(`${where} header must be an image or a video.`);
+    }
+    if (card.header_type !== first.header_type) {
+      throw new Error('All carousel cards must use the same header type (all images or all videos).');
+    }
+    if (!card.header_media_url && !card.header_handle) {
+      throw new Error(`${where} is missing its ${card.header_type}.`);
+    }
+    if (card.header_media_url) {
+      let ok = false;
+      try {
+        const u = new URL(card.header_media_url);
+        ok = u.protocol === 'https:' || u.protocol === 'http:';
+      } catch {
+        // fall through
+      }
+      if (!ok) throw new Error(`${where} media URL must be a valid http(s) URL.`);
+    }
+
+    if (!card.body_text?.trim()) throw new Error(`${where} body text is required.`);
+    if (card.body_text.length > TEMPLATE_LIMITS.carouselCardBodyMaxLength) {
+      throw new Error(
+        `${where} body exceeds ${TEMPLATE_LIMITS.carouselCardBodyMaxLength} chars (got ${card.body_text.length}).`,
+      );
+    }
+    if (extractVariableIndices(card.body_text).length > 0) {
+      throw new Error(`${where} body cannot contain {{N}} variables — use them in the main message body.`);
+    }
+
+    const buttons = card.buttons ?? [];
+    if (buttons.length < 1 || buttons.length > TEMPLATE_LIMITS.carouselMaxButtonsPerCard) {
+      throw new Error(
+        `${where} needs 1–${TEMPLATE_LIMITS.carouselMaxButtonsPerCard} buttons (got ${buttons.length}).`,
+      );
+    }
+    for (const b of buttons) {
+      if (b.type === 'COPY_CODE') {
+        throw new Error(`${where}: copy-code buttons are not allowed on carousel cards.`);
+      }
+      if (b.type === 'URL' && extractVariableIndices(b.url ?? '').length > 0) {
+        throw new Error(`${where}: card links must be fixed URLs (no {{1}}).`);
+      }
+    }
+    try {
+      validateButtons(buttons);
+    } catch (e) {
+      throw new Error(`${where}: ${e instanceof Error ? e.message : 'invalid buttons'}`);
+    }
+    if (buttonSignature(card) !== buttonSignature(first)) {
+      throw new Error(
+        'All carousel cards must have the same buttons (same types, same order) — Meta rule.',
+      );
+    }
+  });
+}
+
+/**
  * Sample values must be supplied 1:1 with the variables in the body
  * (and header, if it has one). Meta uses these for human review.
  */
@@ -330,6 +439,7 @@ export function validateTemplatePayload(payload: TemplatePayload): {
   validateFooter(payload.footer_text);
   const headerResult = validateHeader(payload);
   validateButtons(payload.buttons);
+  validateCarousel(payload);
   validateSampleValues(payload, bodyVars.length, headerResult.variableCount);
   return {
     bodyVarCount: bodyVars.length,

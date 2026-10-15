@@ -1,3 +1,5 @@
+import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve'
+import type { WhatsAppConfig as WhatsAppConfigRow } from '@/types'
 import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
@@ -50,6 +52,7 @@ function buildUpsertRow(
     body_text: payload.body_text,
     footer_text: payload.footer_text ?? null,
     buttons: payload.buttons ?? null,
+    carousel_cards: payload.carousel_cards ?? null,
     sample_values: payload.sample_values ?? null,
     status: extras.status,
     meta_template_id: extras.metaTemplateId,
@@ -138,12 +141,8 @@ export async function POST(request: Request) {
       metaTemplateId = `dry-run-${crypto.randomUUID()}`
       metaStatus = 'PENDING'
     } else {
-      const { data: config, error: configError } = await supabase
-        .from('whatsapp_config')
-        .select('*')
-        .eq('account_id', accountId)
-        .single()
-      if (configError || !config) {
+      const config = await getWhatsAppConfig<WhatsAppConfigRow>(supabase, accountId, {})
+      if (!config) {
         return NextResponse.json(
           {
             error:

@@ -16,7 +16,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Copy, Loader2, MessageCircle, Sparkles } from 'lucide-react';
+import { Copy, Loader2, Mail, MessageCircle, Sparkles } from 'lucide-react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -169,6 +169,14 @@ export function InviteMemberDialog({
     return `https://wa.me/?text=${encodeURIComponent(message)}`;
   }
 
+  // Opens the admin's own mail app with the invite pre-written — no
+  // email service needed on our side.
+  function emailShareUrl(url: string): string {
+    const accountName = result?.accountName ?? t('fallbackAccountName');
+    const body = t('whatsappMessage', { accountName, expiresInDays: result?.expiresInDays ?? 0, url });
+    return `mailto:?subject=${encodeURIComponent(t('emailSubject', { accountName }))}&body=${encodeURIComponent(body)}`;
+  }
+
   return (
     <Dialog
       open={open}
@@ -245,6 +253,17 @@ export function InviteMemberDialog({
               >
                 <MessageCircle className="size-4" />
                 {t('sendViaWhatsApp')}
+              </a>
+              <a
+                href={emailShareUrl(result.url)}
+                className={buttonVariants({
+                  variant: 'outline',
+                  className:
+                    'w-full border-border text-muted-foreground hover:bg-muted',
+                })}
+              >
+                <Mail className="size-4" />
+                {t('sendViaEmail')}
               </a>
             </div>
 

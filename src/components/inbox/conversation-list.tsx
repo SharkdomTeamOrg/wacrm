@@ -21,6 +21,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useWhatsAppNumbers } from "@/hooks/use-whatsapp-numbers";
+import { flagForPhone, numberName } from "@/lib/whatsapp/number-label";
 
 interface ConversationListProps {
   activeConversationId: string | null;
@@ -34,6 +36,8 @@ interface ConversationListProps {
    * or the tab was throttled. Optional so existing callers keep working.
    */
   resyncToken?: number;
+  /** Only show threads on this WhatsApp number (migration 044). */
+  numberId?: string | null;
 }
 
 const STATUS_COLORS: Record<ConversationStatus, string> = {
@@ -52,6 +56,7 @@ export function ConversationList({
   conversations,
   onConversationsLoaded,
   resyncToken = 0,
+  numberId,
 }: ConversationListProps) {
   const t = useTranslations("Inbox.conversationList");
   
@@ -62,6 +67,18 @@ export function ConversationList({
     { label: t("filterPending"), value: "pending" },
     { label: t("filterClosed"), value: "closed" },
   ], [t]);
+
+  // Flag per thread only matters when the account has several numbers
+  // and the list isn't already narrowed to one.
+  const numbers = useWhatsAppNumbers();
+  const numberBadges = useMemo(() => {
+    const m = new Map<string, { flag: string; name: string }>();
+    if (numbers.length < 2 || numberId) return m;
+    for (const n of numbers) {
+      m.set(n.id, { flag: flagForPhone(n.display_phone_number), name: numberName(n) });
+    }
+    return m;
+  }, [numbers, numberId]);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<InboxFilter>("all");
@@ -161,6 +178,10 @@ export function ConversationList({
   const filtered = useMemo(() => {
     let result = conversations;
 
+    if (numberId) {
+      result = result.filter((c) => c.whatsapp_config_id === numberId);
+    }
+
     if (filter === "unread") {
       result = result.filter((c) => c.unread_count > 0);
     } else if (filter !== "all") {
@@ -188,7 +209,7 @@ export function ConversationList({
     }
 
     return result;
-  }, [conversations, filter, search, selectedTagIds, selectedCompany]);
+  }, [conversations, filter, search, selectedTagIds, selectedCompany, numberId]);
 
   const toggleTag = useCallback((id: string) => {
     setSelectedTagIds((prev) =>
@@ -414,6 +435,7 @@ export function ConversationList({
                 isActive={conv.id === activeConversationId}
                 onSelect={handleSelect}
                 t={t}
+                numberBadge={numberBadges.get(conv.whatsapp_config_id ?? "")}
               />
             ))}
           </div>
@@ -428,6 +450,8 @@ interface ConversationItemProps {
   isActive: boolean;
   onSelect: (conversation: Conversation) => void;
   t: ReturnType<typeof useTranslations>;
+  /** Flag + name of the thread's number, when the account has several. */
+  numberBadge?: { flag: string; name: string };
 }
 
 function ConversationItem({
@@ -435,6 +459,7 @@ function ConversationItem({
   isActive,
   onSelect,
   t,
+  numberBadge,
 }: ConversationItemProps) {
   const contact = conversation.contact;
   const displayName = contact?.name || contact?.phone || t("unknown");
@@ -475,6 +500,11 @@ function ConversationItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-medium text-foreground">
+            {numberBadge && (
+              <span className="mr-1" title={numberBadge.name} aria-label={numberBadge.name}>
+                {numberBadge.flag}
+              </span>
+            )}
             {displayName}
           </span>
           <span className="shrink-0 text-[10px] text-muted-foreground">{timeAgo}</span>

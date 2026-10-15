@@ -679,12 +679,16 @@ async function resolveConversationId(args: ExecuteArgs): Promise<string> {
     return data.id as string
   }
   if (!args.contactId) throw new Error('cannot resolve conversation: no contact')
-  const { data, error } = await supabaseAdmin()
+  // A contact can have one thread per business number (migration 044);
+  // send on the most recently active one.
+  const { data: rows, error } = await supabaseAdmin()
     .from('conversations')
     .select('id')
     .eq('account_id', args.automation.account_id)
     .eq('contact_id', args.contactId)
-    .maybeSingle()
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+  const data = rows?.[0]
   if (error) throw new Error(`conversation lookup failed: ${error.message}`)
   if (!data?.id) {
     const prefix = args.triggerEvent === 'tag_added'

@@ -16,6 +16,8 @@
 // for API broadcasts exactly as it does for dashboard ones.
 // ============================================================
 
+import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve';
+import type { WhatsAppConfig as WhatsAppConfigRow } from '@/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { sendTemplateMessage } from '@/lib/whatsapp/meta-api';
@@ -53,6 +55,8 @@ export interface CreateBroadcastParams {
   templateName: string;
   templateLanguage?: string | null;
   recipients: BroadcastRecipientInput[];
+  /** Sending number (migration 044); the account default when omitted. */
+  whatsappConfigId?: string | null;
 }
 
 interface PlannedRecipient {
@@ -109,12 +113,8 @@ export async function createBroadcast(
 
   // Config (fail fast + provides the audit trail owner already resolved
   // by the caller). Meta send needs phone_number_id + decrypted token.
-  const { data: config, error: configError } = await db
-    .from('whatsapp_config')
-    .select('*')
-    .eq('account_id', accountId)
-    .single();
-  if (configError || !config) {
+  const config = await getWhatsAppConfig<WhatsAppConfigRow>(db, accountId, { configId: params.whatsappConfigId });
+  if (!config) {
     throw new BroadcastError(
       'whatsapp_not_configured',
       'WhatsApp not configured. Please set up your WhatsApp integration first.',
@@ -222,6 +222,12 @@ export async function createBroadcast(
   }
 
   const broadcastId = createdRows[0].broadcast_id as string;
+
+  // The RPC predates multi-number; stamp the sending number afterwards so
+  // a later resume sends from the same one.
+  if (config.id) {
+    await db.from('broadcasts').update({ whatsapp_config_id: config.id }).eq('id', broadcastId);
+  }
 
   // Pair each inserted recipient row back to its phone/params by
   // contact_id — unambiguous now that duplicates are collapsed.

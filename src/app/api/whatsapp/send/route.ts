@@ -1,3 +1,4 @@
+import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
@@ -204,14 +205,20 @@ async function findOrCreateConversation(
   userId: string,
   contactId: string,
 ): Promise<string | null> {
-  const { data: existing } = await supabase
+  // One thread per business number since migration 044: reuse the
+  // contact's most recently active one, else open one on the default number.
+  const { data: rows } = await supabase
     .from('conversations')
     .select('id')
     .eq('account_id', accountId)
     .eq('contact_id', contactId)
-    .maybeSingle()
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .limit(1)
 
-  if (existing) return existing.id
+  if (rows?.[0]) return rows[0].id
+
+  const config = await getWhatsAppConfig<{ id: string }>(supabase, accountId, {}, 'id')
+  if (!config) return null
 
   const { data: created, error } = await supabase
     .from('conversations')
@@ -219,6 +226,7 @@ async function findOrCreateConversation(
       account_id: accountId,
       user_id: userId,
       contact_id: contactId,
+      whatsapp_config_id: config.id,
     })
     .select('id')
     .single()

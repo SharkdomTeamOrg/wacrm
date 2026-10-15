@@ -32,6 +32,8 @@ import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { SettingsPanelHead } from './settings-panel-head';
+import { CarouselEditor, type CardButtonType } from './carousel-editor';
+import { CarouselPreview, fillSamples } from '@/components/interactive/carousel-preview';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type {
+  CarouselCard,
   MessageTemplate,
   TemplateButton,
   TemplateSampleValues,
@@ -68,7 +71,7 @@ const categoryColors: Record<string, string> = {
   Authentication: 'bg-amber-600/20 text-amber-400 border-amber-600/30',
 };
 
-interface TemplateFormData {
+export interface TemplateFormData {
   name: string;
   category: MessageTemplate['category'];
   language: string;
@@ -80,6 +83,21 @@ interface TemplateFormData {
   body_samples: string[];
   footer_text: string;
   buttons: TemplateButton[];
+  is_carousel: boolean;
+  card_header_type: CarouselCard['header_type'];
+  // Card button layout lives once on the form and is stamped onto every
+  // card, so Meta's "same buttons on every card" rule holds by construction.
+  card_button_types: CardButtonType[];
+  cards: CarouselCard[];
+}
+
+const CARD_BUTTON_TYPES: CardButtonType[] = ['QUICK_REPLY', 'URL'];
+
+function emptyCard(
+  header_type: CarouselCard['header_type'],
+  types: CardButtonType[],
+): CarouselCard {
+  return { header_type, header_media_url: '', body_text: '', buttons: types.map(emptyButton) };
 }
 
 const emptyForm: TemplateFormData = {
@@ -94,6 +112,10 @@ const emptyForm: TemplateFormData = {
   body_samples: [],
   footer_text: '',
   buttons: [],
+  is_carousel: false,
+  card_header_type: 'image',
+  card_button_types: CARD_BUTTON_TYPES,
+  cards: [],
 };
 
 const COMMON_LANGUAGE_CODES = [
@@ -156,6 +178,22 @@ export function TemplateManager() {
   // Resumable-Upload handle.
   const [uploadingHeader, setUploadingHeader] = useState(false);
   const headerFileRef = useRef<HTMLInputElement>(null);
+  // Carousel: one hidden file input shared by every card; this ref says
+  // which card the picked file belongs to.
+  const cardFileRef = useRef<HTMLInputElement>(null);
+  const cardUploadTarget = useRef(0);
+  const [uploadingCard, setUploadingCard] = useState<number | null>(null);
+  // Shown in the phone preview's chat header.
+  const [businessName, setBusinessName] = useState<string>();
+  useEffect(() => {
+    void supabase
+      .from('accounts')
+      .select('name')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setBusinessName(data?.name ?? undefined));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Body variable indices — `[1, 2, 3]` for "{{1}} {{2}} {{3}}". We
   // re-run the extractor on every render to keep the sample-value rows
@@ -220,6 +258,24 @@ export function TemplateManager() {
       sample_values.header = [form.header_sample.trim()];
     }
 
+    if (form.is_carousel) {
+      return {
+        name: form.name.trim(),
+        category: form.category,
+        language: form.language.trim() || 'en_US',
+        body_text: form.body_text.trim(),
+        // Only the link travels — the server mints fresh Meta handles.
+        carousel_cards: form.cards.map((c) => ({
+          header_type: form.card_header_type,
+          header_media_url: c.header_media_url?.trim() || undefined,
+          body_text: c.body_text.trim(),
+          buttons: c.buttons,
+        })),
+        sample_values:
+          Object.keys(sample_values).length > 0 ? sample_values : undefined,
+      };
+    }
+
     return {
       name: form.name.trim(),
       category: form.category,
@@ -253,6 +309,11 @@ export function TemplateManager() {
       body_samples: template.sample_values?.body ?? [],
       footer_text: template.footer_text ?? '',
       buttons: template.buttons ?? [],
+      is_carousel: !!template.carousel_cards?.length,
+      card_header_type: template.carousel_cards?.[0]?.header_type ?? 'image',
+      card_button_types: (template.carousel_cards?.[0]?.buttons.map((b) => b.type) ??
+        CARD_BUTTON_TYPES) as CardButtonType[],
+      cards: template.carousel_cards ?? [],
     });
     setDialogOpen(true);
   }
@@ -445,6 +506,38 @@ export function TemplateManager() {
     }));
   }
 
+  function setCarousel(on: boolean) {
+    setForm((prev) => ({
+      ...prev,
+      is_carousel: on,
+      cards:
+        on && prev.cards.length === 0
+          ? [0, 1].map(() => emptyCard(prev.card_header_type, prev.card_button_types))
+          : prev.cards,
+    }));
+  }
+
+  function updateCard(index: number, patch: Partial<CarouselCard>) {
+    setForm((prev) => ({
+      ...prev,
+      cards: prev.cards.map((c, i) => (i === index ? { ...c, ...patch } : c)),
+    }));
+  }
+
+  function setCardButtonTypes(types: CardButtonType[]) {
+    setForm((prev) => ({
+      ...prev,
+      card_button_types: types,
+      // Keep a card's button when its slot keeps the same type.
+      cards: prev.cards.map((c) => ({
+        ...c,
+        buttons: types.map((type, i) =>
+          c.buttons[i]?.type === type ? c.buttons[i] : emptyButton(type),
+        ),
+      })),
+    }));
+  }
+
   function addButton() {
     if (form.buttons.length >= TEMPLATE_LIMITS.maxButtonsTotal) return;
     setForm((prev) => ({
@@ -487,7 +580,11 @@ export function TemplateManager() {
     document: 'toastInvalidDocument',
   } as const;
 
-  async function handleHeaderMediaFile(file: File, kind: MediaHeaderKind) {
+  async function handleHeaderMediaFile(
+    file: File,
+    kind: MediaHeaderKind,
+    cardIndex?: number,
+  ) {
     if (!MEDIA_HEADER_SPECS[kind].mimeTypes.includes(file.type)) {
       toast.error(t(invalidTypeKey[kind]));
       return;
@@ -505,15 +602,19 @@ export function TemplateManager() {
       );
       return;
     }
-    setUploadingHeader(true);
+    const forCard = cardIndex !== undefined;
+    if (forCard) setUploadingCard(cardIndex);
+    else setUploadingHeader(true);
     try {
       const { publicUrl } = await uploadAccountMedia('chat-media', file);
-      setForm((f) => ({ ...f, header_media_url: publicUrl }));
+      if (forCard) updateCard(cardIndex, { header_media_url: publicUrl });
+      else setForm((f) => ({ ...f, header_media_url: publicUrl }));
       toast.success(t('toastUploadSuccess'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('toastUploadFailed'));
     } finally {
-      setUploadingHeader(false);
+      if (forCard) setUploadingCard(null);
+      else setUploadingHeader(false);
     }
   }
 
@@ -569,6 +670,11 @@ export function TemplateManager() {
                       <Badge className={`text-xs border ${status.classes}`}>
                         {status.label}
                       </Badge>
+                      {!!template.carousel_cards?.length && (
+                        <Badge className="text-xs border bg-teal-600/20 text-teal-400 border-teal-600/30">
+                          {t('carouselBadge', { count: template.carousel_cards.length })}
+                        </Badge>
+                      )}
                       {template.language && (
                         <span className="text-xs text-muted-foreground uppercase">
                           {template.language}
@@ -592,6 +698,19 @@ export function TemplateManager() {
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {template.body_text}
                     </p>
+                    {!!template.carousel_cards?.length && (
+                      // Read-only preview for any status — Edit is only
+                      // offered once Meta approves/rejects the template.
+                      <details className="text-xs">
+                        <summary className="cursor-pointer text-primary">{t('preview')}</summary>
+                        <CarouselPreview
+                          className="mt-2"
+                          body={fillSamples(template.body_text, template.sample_values?.body)}
+                          cards={template.carousel_cards}
+                          businessName={businessName}
+                        />
+                      </details>
+                    )}
                     {template.footer_text && (
                       <p className="text-xs text-muted-foreground italic">
                         {template.footer_text}
@@ -674,7 +793,11 @@ export function TemplateManager() {
           }
         }}
       >
-        <DialogContent className="bg-popover border-border sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className={`bg-popover border-border max-h-[90vh] overflow-y-auto ${
+            form.is_carousel ? 'sm:max-w-5xl' : 'sm:max-w-2xl'
+          }`}
+        >
           <DialogHeader>
             <DialogTitle className="text-popover-foreground">
               {editingId ? t('dialogEditTitle') : t('dialogNewTitle')}
@@ -693,7 +816,8 @@ export function TemplateManager() {
             </div>
           )}
 
-          <div className="space-y-4 py-2">
+          <div className={form.is_carousel ? 'grid gap-6 md:grid-cols-[minmax(0,1fr)_300px]' : ''}>
+          <div className="space-y-4 py-2 min-w-0">
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t('templateName')}</Label>
               <Input
@@ -766,6 +890,41 @@ export function TemplateManager() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">{t('templateType')}</Label>
+              <Select
+                value={form.is_carousel ? 'carousel' : 'standard'}
+                onValueChange={(val) => {
+                  if (val) setCarousel(val === 'carousel');
+                }}
+              >
+                <SelectTrigger
+                  aria-label={t('templateType')}
+                  className="w-full bg-muted border-border text-foreground"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem
+                    value="standard"
+                    className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
+                  >
+                    {t('typeStandard')}
+                  </SelectItem>
+                  <SelectItem
+                    value="carousel"
+                    className="text-popover-foreground focus:bg-muted focus:text-popover-foreground"
+                  >
+                    {t('typeCarousel')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {form.is_carousel && (
+                <p className="text-[11px] text-muted-foreground">{t('carouselHint')}</p>
+              )}
+            </div>
+
+            {!form.is_carousel && (
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t('header')}</Label>
               <Select
@@ -897,6 +1056,7 @@ export function TemplateManager() {
                 </div>
               )}
             </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t('bodyText')}</Label>
@@ -941,6 +1101,26 @@ export function TemplateManager() {
               )}
             </div>
 
+            {form.is_carousel ? (
+              <CarouselEditor
+                form={form}
+                setForm={setForm}
+                updateCard={updateCard}
+                setCardButtonTypes={setCardButtonTypes}
+                addCard={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    cards: [...prev.cards, emptyCard(prev.card_header_type, prev.card_button_types)],
+                  }))
+                }
+                uploadingCard={uploadingCard}
+                onPickFile={(ci) => {
+                  cardUploadTarget.current = ci;
+                  cardFileRef.current?.click();
+                }}
+              />
+            ) : (
+            <>
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t('footer')}</Label>
               <Input
@@ -1087,6 +1267,30 @@ export function TemplateManager() {
                 </div>
               )}
             </div>
+            </>
+            )}
+            <input
+              ref={cardFileRef}
+              type="file"
+              accept={MEDIA_HEADER_SPECS[form.card_header_type].mimeTypes.join(',')}
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleHeaderMediaFile(f, form.card_header_type, cardUploadTarget.current);
+                e.target.value = '';
+              }}
+            />
+          </div>
+          {form.is_carousel && (
+            <aside className="space-y-2 self-start py-2 md:sticky md:top-0">
+              <Label className="text-muted-foreground">{t('preview')}</Label>
+              <CarouselPreview
+                body={fillSamples(form.body_text, form.body_samples)}
+                cards={form.cards}
+                businessName={businessName}
+              />
+            </aside>
+          )}
           </div>
 
           <DialogFooter className="bg-popover border-border">

@@ -315,9 +315,12 @@ async function createStubForUnknownTemplate(p: StubParams): Promise<void> {
     return
   }
   const rows = (configs ?? []) as { account_id: string; user_id: string }[]
-  if (rows.length !== 1) {
+  // Several numbers of one account share a WABA (migration 044) — only
+  // ambiguity *between accounts* blocks the stub.
+  const accountCount = new Set(rows.map((r) => r.account_id)).size
+  if (accountCount !== 1) {
     console.warn(
-      `[template-webhook] ${kind} for unknown template ${where} — ${rows.length === 0 ? 'no' : rows.length} whatsapp_config rows match that WABA id; not creating a stub. Run "Sync from Meta" for the owning account.`,
+      `[template-webhook] ${kind} for unknown template ${where} — ${accountCount === 0 ? 'no' : accountCount} accounts match that WABA id; not creating a stub. Run "Sync from Meta" for the owning account.`,
     )
     return
   }

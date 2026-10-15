@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -16,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MessageSquare, CheckCircle, UsersRound } from "lucide-react";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in";
 
 // `useSearchParams` opts the component out of static prerendering
 // unless wrapped in Suspense — same pattern as /login.
@@ -77,7 +79,7 @@ function SignupPageInner() {
       : "/dashboard";
     const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -91,6 +93,14 @@ function SignupPageInner() {
     if (error) {
       setError(error.message);
       setLoading(false);
+      return;
+    }
+
+    // Projects with email confirmation off sign the user in right away —
+    // go straight in rather than asking them to check an email that
+    // never comes. Full reload so the middleware sees the new cookies.
+    if (data.session) {
+      window.location.href = next;
       return;
     }
 
@@ -199,9 +209,8 @@ function SignupPageInner() {
               <Label htmlFor="password" className="text-muted-foreground">
                 {t("passwordLabel")}
               </Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder={t("passwordPlaceholder")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -214,9 +223,8 @@ function SignupPageInner() {
               <Label htmlFor="confirmPassword" className="text-muted-foreground">
                 {t("confirmPasswordLabel")}
               </Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 placeholder={t("confirmPasswordPlaceholder")}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -233,6 +241,14 @@ function SignupPageInner() {
               {loading ? t("creating") : t("submit")}
             </Button>
           </form>
+
+          <div className="mt-4">
+            <GoogleSignInButton
+              next={inviteToken ? `/join/${encodeURIComponent(inviteToken)}` : "/dashboard"}
+              label={t("continueWithGoogle")}
+              dividerLabel={t("orDivider")}
+            />
+          </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {t("haveAccount")}{" "}

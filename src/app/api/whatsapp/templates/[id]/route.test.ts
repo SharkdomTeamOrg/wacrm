@@ -60,7 +60,13 @@ function makeSupabaseMock() {
 
     const b: Record<string, unknown> = {}
     const chain = () => b
-    for (const m of ['select', 'eq', 'in', 'order', 'limit']) b[m] = vi.fn(chain)
+    // `.limit()` marks a list query: a bare await then yields rows[].
+    let listQuery = false
+    for (const m of ['select', 'eq', 'in', 'order']) b[m] = vi.fn(chain)
+    b.limit = vi.fn(() => {
+      listQuery = true
+      return b
+    })
     b.update = vi.fn((patch: Record<string, unknown>) => {
       if (table === 'message_templates') templateUpdates.push(patch)
       return b
@@ -71,7 +77,10 @@ function makeSupabaseMock() {
     })
     b.single = vi.fn(async () => result())
     b.maybeSingle = vi.fn(async () => result())
-    b.then = (resolve: (v: unknown) => unknown) => resolve(result())
+    b.then = (resolve: (v: unknown) => unknown) => {
+      const r = result()
+      return resolve(listQuery ? { ...r, data: r.data ? [r.data] : [] } : r)
+    }
     return b
   }
 

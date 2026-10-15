@@ -42,6 +42,9 @@ function InboxPageInner() {
    * automatically instead of showing the empty center panel.
    */
   const deepLinkConvId = searchParams.get("c");
+  // Sidebar number switcher (migration 044): `?number=<whatsapp_config id>`.
+  const numberId = searchParams.get("number");
+  const numberQuery = numberId ? `number=${numberId}` : "";
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
@@ -200,13 +203,13 @@ function InboxPageInner() {
         return;
       }
 
+      // Several numbers per account (migration 044) — connected if any is.
       const { data } = await supabase
         .from("whatsapp_config")
         .select("status")
-        .eq("account_id", accountId)
-        .maybeSingle();
+        .eq("account_id", accountId);
 
-      setWhatsappConnected(data?.status === "connected");
+      setWhatsappConnected(!!data?.some((r) => r.status === "connected"));
     };
 
     checkConnection();
@@ -483,9 +486,11 @@ function InboxPageInner() {
       // Reflect the selection in the URL so a refresh lands the user
       // back in the same thread, and so copy-paste links work. Use
       // replace() to avoid polluting browser history with every click.
-      router.replace(`/inbox?c=${conv.id}`, { scroll: false });
+      router.replace(`/inbox?c=${conv.id}${numberQuery ? `&${numberQuery}` : ""}`, {
+        scroll: false,
+      });
     },
-    [activeConversation?.id, router]
+    [activeConversation?.id, router, numberQuery]
   );
 
   // Mobile "back" — deselect the conversation so the list pane comes
@@ -498,8 +503,8 @@ function InboxPageInner() {
     // Clearing the ref lets the deep-link auto-selector fire again if
     // the user later visits /inbox?c=<same-id> — desirable UX.
     autoSelectedForDeepLinkRef.current = null;
-    router.replace("/inbox", { scroll: false });
-  }, [router]);
+    router.replace(numberQuery ? `/inbox?${numberQuery}` : "/inbox", { scroll: false });
+  }, [router, numberQuery]);
 
 
   const handleMessagesLoaded = useCallback((loaded: Message[]) => {
@@ -590,6 +595,7 @@ function InboxPageInner() {
             conversations={conversations}
             onConversationsLoaded={handleConversationsLoaded}
             resyncToken={resyncToken}
+            numberId={numberId}
           />
         </div>
 

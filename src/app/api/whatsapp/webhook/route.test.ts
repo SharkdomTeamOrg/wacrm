@@ -64,6 +64,7 @@ vi.mock('@supabase/supabase-js', () => ({
                 Promise.resolve({
                   data: [
                     {
+                      id: 'cfg-1',
                       account_id: 'acc-1',
                       user_id: 'user-1',
                       access_token: 'enc',
@@ -75,17 +76,20 @@ vi.mock('@supabase/supabase-js', () => ({
             }),
           }
         case 'conversations':
-          // findOrCreateConversation: select().eq().eq().order().limit()
+          // findOrCreateConversation:
+          //   select().eq().eq().eq(whatsapp_config_id).order().limit()
           return {
             select: () => ({
               eq: () => ({
                 eq: () => ({
-                  order: () => ({
-                    limit: () =>
-                      Promise.resolve({
-                        data: [h.state.conversation],
-                        error: null,
-                      }),
+                  eq: () => ({
+                    order: () => ({
+                      limit: () =>
+                        Promise.resolve({
+                          data: [h.state.conversation],
+                          error: null,
+                        }),
+                    }),
                   }),
                 }),
               }),

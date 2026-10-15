@@ -1,5 +1,10 @@
 {
   "LoginPage": {
+    "resendConfirmation": "Reenviar e-mail de confirmação",
+    "resendSending": "Enviando…",
+    "resendSent": "Enviado — verifique sua caixa de entrada (e spam).",
+    "continueWithGoogle": "Continuar com o Google",
+    "orDivider": "ou",
     "titleAccept": "Entre para aceitar",
     "titleWelcome": "Bem-vindo de volta",
     "descAccept": "Entre e levaremos você até o convite.",
@@ -17,6 +22,8 @@
     "linkInvalid": "Não foi possível entrar com esse link. Se estava confirmando seu e-mail, ele já pode estar verificado — basta entrar abaixo. Para redefinir a senha, peça um novo link e abra-o no mesmo navegador em que o solicitou."
   },
   "Sidebar": {
+    "inboxNumber": "Número da caixa de entrada",
+    "allNumbers": "Todos os números",
     "title": "Modelo de CRM para WhatsApp",
     "primaryNav": "Principal",
     "dashboard": "Painel",
@@ -295,7 +302,10 @@
       "finalUrl": "URL final: {url}",
       "back": "Voltar",
       "cancel": "Cancelar",
-      "send": "Enviar modelo"
+      "send": "Enviar modelo",
+      "headerMediaLabel": "Cabeçalho ({kind})",
+      "headerMediaUpload": "Enviar arquivo",
+      "headerMediaHint": "Este modelo não tem mídia de cabeçalho salva (ex.: foi sincronizado da Meta). Cole um link HTTPS público ou envie um arquivo."
     },
     "sidebar": {
       "contactInfo": "Informações do contato",
@@ -820,6 +830,8 @@
         }
       },
       "scheduleSend": {
+        "sendFrom": "Enviar de",
+        "defaultNumber": "padrão",
         "title": "Revisar e enviar",
         "subtitle": "Dê um nome ao seu disparo e confirme o envio.",
         "broadcastName": "Nome do disparo",
@@ -1337,6 +1349,9 @@
       "loading": "Carregando…"
     },
     "members": {
+      "leaveBtn": "Sair",
+      "leaveConfirm": "Sair desta conta? Você perderá o acesso à caixa de entrada e aos dados dela e passará para sua própria conta pessoal. Um administrador pode convidá-lo novamente.",
+      "leaveFailed": "Não foi possível sair da conta",
       "title": "Membros da equipe",
       "description": "Pessoas com acesso a esta conta. As funções controlam o que cada colega pode fazer.",
       "inviteMember": "Convidar membro",
@@ -1375,6 +1390,8 @@
       "removeBtn": "Remover membro"
     },
     "invite": {
+      "sendViaEmail": "Enviar por e-mail",
+      "emailSubject": "Você foi convidado para {accountName} no wacrm",
       "inviteCreated": "Convite criado",
       "inviteCreatedDesc": "Compartilhe este link com o novo colega. Ele poderá se cadastrar (ou entrar) e ingressar na conta como <bold>{role}</bold>. O link é válido por <bold>{days} {days, plural, =1 {dia} other {dias}}</bold>.",
       "inviteLink": "Link do convite",
@@ -1543,7 +1560,22 @@
       "toastInvalidDocument": "O documento do cabeçalho deve ser um arquivo PDF, Word, PowerPoint, Excel ou texto.",
       "toastMediaTooLarge": "O arquivo tem {size} MB — o limite de upload é {max} MB.",
       "toastUploadSuccess": "Arquivo enviado.",
-      "toastUploadFailed": "Falha no upload."
+      "toastUploadFailed": "Falha no upload.",
+      "templateType": "Tipo de modelo",
+      "typeStandard": "Padrão",
+      "typeCarousel": "Carrossel (cartões deslizáveis)",
+      "carouselHint": "Uma mensagem curta seguida de 2 a 10 cartões deslizáveis, cada um com sua imagem ou vídeo, texto e botões. Todos os cartões usam o mesmo tipo de mídia e os mesmos botões.",
+      "carouselBadge": "Carrossel · {count} cartões",
+      "cardMediaType": "Mídia do cartão",
+      "cardButtonsLayout": "Botões do cartão (iguais em todos)",
+      "addCardButton": "Adicionar botão do cartão",
+      "cards": "Cartões",
+      "addCard": "Adicionar cartão",
+      "cardTitle": "Cartão {n}",
+      "removeCard": "Remover cartão",
+      "cardBodyPlaceholder": "Texto do cartão (máx. 160 caracteres)",
+      "cardUrlPlaceholder": "https://example.com/oferta",
+      "preview": "Pré-visualização"
     },
     "roles": {
       "admin": "Administrador",
@@ -1658,7 +1690,18 @@
       "phoneNumberIdNotNumeric": "O Phone Number ID deve conter apenas dígitos. Copie o id numérico em Meta → WhatsApp → Configuração da API, não o número de telefone em si.",
       "wabaIdNotNumeric": "O ID da conta do WhatsApp Business deve conter apenas dígitos. Copie-o em Meta → WhatsApp → Configuração da API.",
       "wabaSubscribed": "A conta do WhatsApp Business está inscrita neste app — os webhooks de entrada podem ser entregues.",
-      "wabaNotSubscribed": "A conta do WhatsApp Business não está inscrita neste app, então a Meta não entregará webhooks de entrada. Informe novamente o token de acesso e salve de novo para inscrevê-la."
+      "wabaNotSubscribed": "A conta do WhatsApp Business não está inscrita neste app, então a Meta não entregará webhooks de entrada. Informe novamente o token de acesso e salve de novo para inscrevê-la.",
+      "numbersTitle": "Números de WhatsApp",
+      "numbersDesc": "Conecte um ou mais números (de qualquer país). Cada número tem sua própria caixa de entrada; as respostas sempre saem do número para o qual o cliente escreveu.",
+      "addNumber": "Adicionar número",
+      "noNumbersYet": "Nenhum número conectado ainda — preencha o formulário abaixo.",
+      "defaultBadge": "Padrão",
+      "makeDefault": "Tornar padrão",
+      "makeDefaultFailed": "Não foi possível alterar o número padrão",
+      "defaultUpdated": "Número padrão atualizado",
+      "addingNewNumber": "Adicionando um novo número — preencha as credenciais abaixo e salve.",
+      "numberLabel": "Rótulo",
+      "numberLabelPlaceholder": "ex.: Vendas EUA, Suporte Reino Unido"
     },
     "sections": {
       "overview": "Visão geral",
@@ -1888,6 +1931,8 @@
     }
   },
   "SignupPage": {
+    "continueWithGoogle": "Continuar com o Google",
+    "orDivider": "ou",
     "passwordsMismatch": "As senhas não coincidem",
     "passwordTooShort": "A senha deve ter pelo menos 6 caracteres",
     "checkEmailTitle": "Verifique seu e-mail",

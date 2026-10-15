@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import {
   Card,
@@ -100,9 +101,8 @@ export function PasswordForm() {
             <Label htmlFor="current-password" className="text-foreground">
               {t('currentPassword')}
             </Label>
-            <Input
+            <PasswordInput
               id="current-password"
-              type="password"
               value={current}
               onChange={(e) => setCurrent(e.target.value)}
               autoComplete="current-password"
@@ -116,9 +116,8 @@ export function PasswordForm() {
               <Label htmlFor="new-password" className="text-foreground">
                 {t('newPassword')}
               </Label>
-              <Input
+              <PasswordInput
                 id="new-password"
-                type="password"
                 value={next}
                 onChange={(e) => setNext(e.target.value)}
                 autoComplete="new-password"
@@ -131,9 +130,8 @@ export function PasswordForm() {
               <Label htmlFor="confirm-password" className="text-foreground">
                 {t('confirmPassword')}
               </Label>
-              <Input
+              <PasswordInput
                 id="confirm-password"
-                type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 autoComplete="new-password"

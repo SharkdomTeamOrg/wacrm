@@ -32,6 +32,10 @@ interface MetaErrorResponse {
     error_subcode?: number
     type?: string
     fbtrace_id?: string
+    /** Template/Graph endpoints put the actual reason here, under a
+     *  generic `message` like "Invalid parameter". */
+    error_user_title?: string
+    error_user_msg?: string
     /** WhatsApp-specific envelope — `details` is the human-readable part. */
     error_data?: { messaging_product?: string; details?: string }
   }
@@ -89,6 +93,12 @@ async function readMetaError(response: Response, fallback: string): Promise<Meta
     const data = (await response.json()) as MetaErrorResponse
     envelope = data.error
     if (envelope?.message) message = envelope.message
+    // Append Meta's specific reason when it gave one, so the UI shows
+    // "Invalid parameter — <what was wrong>" instead of the bare generic.
+    const reason = [envelope?.error_user_title, envelope?.error_user_msg ?? envelope?.error_data?.details]
+      .filter((v): v is string => !!v && v !== message)
+      .join(': ')
+    if (reason) message = `${message} — ${reason}`
   } catch {
     // response body wasn't JSON — keep the fallback
   }

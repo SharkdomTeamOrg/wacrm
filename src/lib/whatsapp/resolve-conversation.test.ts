@@ -56,6 +56,10 @@ function makeDb(script: Script): SupabaseClient {
         convLookupCalls++;
         return Promise.resolve({ data: row ? [row] : [], error: null });
       }
+      // getWhatsAppConfig's default-number lookup (migration 044).
+      if (table === 'whatsapp_config' && script.config) {
+        return Promise.resolve({ data: [{ id: 'cfg-1', ...script.config }], error: null });
+      }
       return Promise.resolve({ data: [], error: null });
     },
     like: () => {

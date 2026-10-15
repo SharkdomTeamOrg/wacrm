@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { ArrowLeft, Send, Loader2, Users, Save } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useWhatsAppNumbers } from '@/hooks/use-whatsapp-numbers';
+import { flagForPhone, numberName } from '@/lib/whatsapp/number-label';
 
 interface AudienceConfig {
   type: string;
@@ -33,6 +35,9 @@ interface Step4Props {
   onBack: () => void;
   isProcessing: boolean;
   progress: number;
+  /** Sending number (migration 044); '' = the account default. */
+  fromNumberId?: string;
+  onFromNumberChange?: (id: string) => void;
 }
 
 export function Step4ScheduleSend({
@@ -45,8 +50,11 @@ export function Step4ScheduleSend({
   onBack,
   isProcessing,
   progress,
+  fromNumberId = '',
+  onFromNumberChange,
 }: Step4Props) {
   const t = useTranslations('Broadcasts.wizard');
+  const numbers = useWhatsAppNumbers();
   const [showConfirm, setShowConfirm] = useState(false);
   const [estimatedReach, setEstimatedReach] = useState<number>(0);
   const [loadingReach, setLoadingReach] = useState(true);
@@ -111,6 +119,28 @@ export function Step4ScheduleSend({
           className="border-border bg-muted text-foreground placeholder:text-muted-foreground"
         />
       </div>
+
+      {/* Sending number — only a choice when the account has several */}
+      {numbers.length > 1 && onFromNumberChange && (
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            {t('scheduleSend.sendFrom')}
+          </label>
+          <select
+            value={fromNumberId}
+            onChange={(e) => onFromNumberChange(e.target.value)}
+            className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            {numbers.map((n) => (
+              <option key={n.id} value={n.is_default ? '' : n.id}>
+                {flagForPhone(n.display_phone_number)} {numberName(n)}
+                {n.display_phone_number ? ` (${n.display_phone_number})` : ''}
+                {n.is_default ? ` — ${t('scheduleSend.defaultNumber')}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Summary Card */}
       <div className="rounded-xl border border-border bg-card/50 p-4 space-y-3">

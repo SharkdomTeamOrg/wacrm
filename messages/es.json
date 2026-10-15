@@ -1,5 +1,10 @@
 {
   "LoginPage": {
+    "resendConfirmation": "Reenviar correo de confirmación",
+    "resendSending": "Enviando…",
+    "resendSent": "Enviado — revisa tu bandeja (y spam).",
+    "continueWithGoogle": "Continuar con Google",
+    "orDivider": "o",
     "titleAccept": "Inicia sesión para aceptar",
     "titleWelcome": "Bienvenido de nuevo",
     "descAccept": "Inicia sesión y te llevaremos a la invitación.",
@@ -17,6 +22,8 @@
     "linkInvalid": "No se pudo iniciar sesión con ese enlace. Si estabas confirmando tu correo, es posible que ya esté verificado; inicia sesión abajo. Para restablecer la contraseña, pide un enlace nuevo y ábrelo en el mismo navegador desde el que lo solicitaste."
   },
   "Sidebar": {
+    "inboxNumber": "Número de la bandeja",
+    "allNumbers": "Todos los números",
     "title": "Plantilla de CRM para WhatsApp",
     "primaryNav": "Principal",
     "dashboard": "Panel",
@@ -295,7 +302,10 @@
       "finalUrl": "URL final: {url}",
       "back": "Atrás",
       "cancel": "Cancelar",
-      "send": "Enviar plantilla"
+      "send": "Enviar plantilla",
+      "headerMediaLabel": "Encabezado ({kind})",
+      "headerMediaUpload": "Subir archivo",
+      "headerMediaHint": "Esta plantilla no tiene medio de encabezado guardado (p. ej., se sincronizó desde Meta). Pega un enlace HTTPS público o sube un archivo."
     },
     "sidebar": {
       "contactInfo": "Información del contacto",
@@ -820,6 +830,8 @@
         }
       },
       "scheduleSend": {
+        "sendFrom": "Enviar desde",
+        "defaultNumber": "predeterminado",
         "title": "Revisar y enviar",
         "subtitle": "Ponle un nombre a tu difusión y confirma el envío.",
         "broadcastName": "Nombre de la difusión",
@@ -1337,6 +1349,9 @@
       "loading": "Cargando…"
     },
     "members": {
+      "leaveBtn": "Salir",
+      "leaveConfirm": "¿Salir de esta cuenta? Perderás el acceso a su bandeja y datos, y pasarás a tu propia cuenta personal. Un administrador puede volver a invitarte.",
+      "leaveFailed": "No se pudo salir de la cuenta",
       "title": "Miembros del equipo",
       "description": "Personas con acceso a esta cuenta. Los roles controlan lo que cada compañero puede hacer.",
       "inviteMember": "Invitar miembro",
@@ -1375,6 +1390,8 @@
       "removeBtn": "Quitar miembro"
     },
     "invite": {
+      "sendViaEmail": "Enviar por correo",
+      "emailSubject": "Te invitaron a unirte a {accountName} en wacrm",
       "inviteCreated": "Invitación creada",
       "inviteCreatedDesc": "Comparte este enlace con tu nuevo compañero. Podrá registrarse (o iniciar sesión) y unirse a la cuenta como <bold>{role}</bold>. El enlace es válido por <bold>{days} {days, plural, =1 {día} other {días}}</bold>.",
       "inviteLink": "Enlace de invitación",
@@ -1543,7 +1560,22 @@
       "toastInvalidDocument": "El documento del encabezado debe ser un archivo PDF, Word, PowerPoint, Excel o de texto.",
       "toastMediaTooLarge": "El archivo pesa {size} MB; el límite de carga es {max} MB.",
       "toastUploadSuccess": "Archivo subido.",
-      "toastUploadFailed": "Error al subir."
+      "toastUploadFailed": "Error al subir.",
+      "templateType": "Tipo de plantilla",
+      "typeStandard": "Estándar",
+      "typeCarousel": "Carrusel (tarjetas deslizables)",
+      "carouselHint": "Un mensaje corto seguido de 2 a 10 tarjetas deslizables, cada una con su imagen o video, texto y botones. Todas las tarjetas usan el mismo tipo de medio y los mismos botones.",
+      "carouselBadge": "Carrusel · {count} tarjetas",
+      "cardMediaType": "Medio de la tarjeta",
+      "cardButtonsLayout": "Botones de tarjeta (iguales en todas)",
+      "addCardButton": "Agregar botón de tarjeta",
+      "cards": "Tarjetas",
+      "addCard": "Agregar tarjeta",
+      "cardTitle": "Tarjeta {n}",
+      "removeCard": "Quitar tarjeta",
+      "cardBodyPlaceholder": "Texto de la tarjeta (máx. 160 caracteres)",
+      "cardUrlPlaceholder": "https://example.com/oferta",
+      "preview": "Vista previa"
     },
     "roles": {
       "admin": "Administrador",
@@ -1658,7 +1690,18 @@
       "phoneNumberIdNotNumeric": "El Phone Number ID debe contener solo dígitos. Copia el id numérico desde Meta → WhatsApp → Configuración de la API, no el número de teléfono en sí.",
       "wabaIdNotNumeric": "El ID de la cuenta de WhatsApp Business debe contener solo dígitos. Cópialo desde Meta → WhatsApp → Configuración de la API.",
       "wabaSubscribed": "La cuenta de WhatsApp Business está suscrita a esta app: los webhooks entrantes pueden entregarse.",
-      "wabaNotSubscribed": "La cuenta de WhatsApp Business no está suscrita a esta app, así que Meta no entregará webhooks entrantes. Vuelve a ingresar el token de acceso y guarda de nuevo para suscribirla."
+      "wabaNotSubscribed": "La cuenta de WhatsApp Business no está suscrita a esta app, así que Meta no entregará webhooks entrantes. Vuelve a ingresar el token de acceso y guarda de nuevo para suscribirla.",
+      "numbersTitle": "Números de WhatsApp",
+      "numbersDesc": "Conecta uno o más números (de cualquier país). Cada número tiene su propia bandeja; las respuestas salen siempre del número al que escribió el cliente.",
+      "addNumber": "Agregar número",
+      "noNumbersYet": "Aún no hay números conectados — completa el formulario de abajo.",
+      "defaultBadge": "Predeterminado",
+      "makeDefault": "Hacer predeterminado",
+      "makeDefaultFailed": "No se pudo cambiar el número predeterminado",
+      "defaultUpdated": "Número predeterminado actualizado",
+      "addingNewNumber": "Agregando un número nuevo — completa sus credenciales abajo y guarda.",
+      "numberLabel": "Etiqueta",
+      "numberLabelPlaceholder": "p. ej. Ventas EE. UU., Soporte Reino Unido"
     },
     "sections": {
       "overview": "Resumen",
@@ -1888,6 +1931,8 @@
     }
   },
   "SignupPage": {
+    "continueWithGoogle": "Continuar con Google",
+    "orDivider": "o",
     "passwordsMismatch": "Las contraseñas no coinciden",
     "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
     "checkEmailTitle": "Revisa tu correo",

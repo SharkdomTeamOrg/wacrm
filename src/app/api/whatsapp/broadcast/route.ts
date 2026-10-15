@@ -1,3 +1,5 @@
+import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve'
+import type { WhatsAppConfig as WhatsAppConfigRow } from '@/types'
 import { NextResponse } from 'next/server'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
 import { sendTemplateMessage } from '@/lib/whatsapp/meta-api'
@@ -89,6 +91,8 @@ export async function POST(request: Request) {
       template_name,
       template_language,
       template_params,
+      // Sending number (migration 044); the account default when omitted.
+      whatsapp_config_id,
     } = body
 
     // Normalize to a list of {phone, params} regardless of shape.
@@ -120,13 +124,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const { data: config, error: configError } = await supabase
-      .from('whatsapp_config')
-      .select('*')
-      .eq('account_id', accountId)
-      .single()
+    const config = await getWhatsAppConfig<WhatsAppConfigRow>(supabase, accountId, { configId: whatsapp_config_id })
 
-    if (configError || !config) {
+    if (!config) {
       return NextResponse.json(
         {
           error:

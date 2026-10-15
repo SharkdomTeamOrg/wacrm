@@ -45,3 +45,7 @@ next-env.d.ts
 
 # generated migration bundle — rebuild from supabase/migrations/ rather than editing
 supabase/apply/
+
+# Supabase CLI local state
+supabase/.branches/
+supabase/.temp/

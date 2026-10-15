@@ -91,9 +91,15 @@ function makeSupabaseMock() {
 
     const b: Record<string, unknown> = {}
     const chain = () => b
-    for (const m of ['select', 'eq', 'in', 'order', 'limit', 'update', 'delete']) {
+    // `.limit()` marks a list query: a bare await then yields rows[].
+    let listQuery = false
+    for (const m of ['select', 'eq', 'in', 'order', 'update', 'delete']) {
       b[m] = vi.fn(chain)
     }
+    b.limit = vi.fn(() => {
+      listQuery = true
+      return b
+    })
     b.insert = vi.fn((payload: Record<string, unknown>) => {
       didInsert = true
       if (table === 'conversations') {
@@ -110,8 +116,10 @@ function makeSupabaseMock() {
     })
     b.single = vi.fn(terminal)
     b.maybeSingle = vi.fn(terminal)
-    b.then = (resolve: (v: unknown) => unknown) =>
-      resolve(didInsert ? insertResult() : selectResult())
+    b.then = (resolve: (v: unknown) => unknown) => {
+      const r = didInsert ? insertResult() : selectResult()
+      return resolve(listQuery ? { ...r, data: r.data ? [r.data] : [] } : r)
+    }
     return b
   }
 

@@ -1,3 +1,5 @@
+import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve'
+import type { WhatsAppConfig as WhatsAppConfigRow } from '@/types'
 import { NextResponse } from 'next/server'
 import {
   ForbiddenError,
@@ -129,12 +131,8 @@ export async function PATCH(
     }
 
     if (!isDryRun()) {
-      const { data: config, error: configError } = await supabase
-        .from('whatsapp_config')
-        .select('*')
-        .eq('account_id', accountId)
-        .single()
-      if (configError || !config) {
+      const config = await getWhatsAppConfig<WhatsAppConfigRow>(supabase, accountId, {})
+      if (!config) {
         return NextResponse.json(
           { error: 'WhatsApp not configured.' },
           { status: 400 },
@@ -187,6 +185,7 @@ export async function PATCH(
         body_text: payload.body_text,
         footer_text: payload.footer_text ?? null,
         buttons: payload.buttons ?? null,
+        carousel_cards: payload.carousel_cards ?? null,
         sample_values: payload.sample_values ?? null,
         status: 'PENDING',
         submission_error: null,
@@ -254,12 +253,8 @@ export async function DELETE(
     }
 
     if (existing.meta_template_id && !isDryRun()) {
-      const { data: config, error: configError } = await supabase
-        .from('whatsapp_config')
-        .select('*')
-        .eq('account_id', accountId)
-        .single()
-      if (configError || !config || !config.waba_id) {
+      const config = await getWhatsAppConfig<WhatsAppConfigRow>(supabase, accountId, {})
+      if (!config || !config.waba_id) {
         return NextResponse.json(
           { error: 'WhatsApp not configured — cannot delete on Meta.' },
           { status: 400 },

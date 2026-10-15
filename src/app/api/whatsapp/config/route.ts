@@ -22,6 +22,7 @@ import {
 } from '@/lib/whatsapp/waba-pairing'
 import { encrypt, decrypt } from '@/lib/whatsapp/encryption'
 import { resolveVerifyTokenForSave } from '@/lib/whatsapp/verify-token'
+import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve'
 
 /**
  * Resolve the caller's account_id from their profile. Inlined here
@@ -96,7 +97,7 @@ function metaFailure(err: unknown, step: MetaConnectStep, ctx: MetaErrorContext)
  *   { connected: false, reason: 'meta_api_error',   message: '...',
  *     meta: { code, subcode, fbtrace_id, step, field, message } }
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient()
 
@@ -121,19 +122,19 @@ export async function GET() {
       )
     }
 
-    const { data: config, error: configError } = await supabase
-      .from('whatsapp_config')
-      .select('phone_number_id, waba_id, access_token, status')
-      .eq('account_id', accountId)
-      .maybeSingle()
-
-    if (configError) {
-      console.error('Error fetching whatsapp_config:', configError)
-      return NextResponse.json(
-        { connected: false, reason: 'db_error', message: 'Failed to fetch configuration' },
-        { status: 200 }
-      )
-    }
+    // ?id= checks one of the account's numbers (migration 044); the
+    // default number otherwise.
+    const config = await getWhatsAppConfig<{
+      phone_number_id: string
+      waba_id: string | null
+      access_token: string
+      status: string
+    }>(
+      supabase,
+      accountId,
+      { configId: new URL(request.url).searchParams.get('id') },
+      'phone_number_id, waba_id, access_token, status',
+    )
 
     if (!config) {
       return NextResponse.json(
@@ -268,6 +269,12 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const { phone_number_id, waba_id, access_token, verify_token, pin } = body
+    // Multi-number (migration 044): `id` edits that number; without it the
+    // save adds a number (or updates the row already holding this
+    // phone_number_id). `label` is the admin-facing name.
+    const configId: string | null = typeof body.id === 'string' && body.id ? body.id : null
+    const label: string | null =
+      typeof body.label === 'string' && body.label.trim() ? body.label.trim().slice(0, 60) : null
 
     if (!access_token || !phone_number_id) {
       return NextResponse.json(
@@ -393,11 +400,32 @@ export async function POST(request: Request) {
     // around), and we need the stored verify_token — the settings form
     // never shows it, so a save that leaves the field blank must keep it
     // rather than null it out.
-    const { data: existing } = await supabase
+    const existingQuery = supabase
       .from('whatsapp_config')
       .select('id, registered_at, phone_number_id, verify_token')
       .eq('account_id', accountId)
+    const { data: existing } = await (configId
+      ? existingQuery.eq('id', configId)
+      : existingQuery.eq('phone_number_id', phone_number_id)
+    ).maybeSingle()
+    if (configId && !existing) {
+      return NextResponse.json({ error: 'WhatsApp number not found.' }, { status: 404 })
+    }
+
+    // Editing number A into a phone_number_id that number B of this
+    // account already holds would trip the global UNIQUE — name it.
+    const { data: sibling } = await supabase
+      .from('whatsapp_config')
+      .select('id')
+      .eq('account_id', accountId)
+      .eq('phone_number_id', phone_number_id)
       .maybeSingle()
+    if (sibling && sibling.id !== existing?.id) {
+      return NextResponse.json(
+        { error: 'This phone number is already connected to this account.', field: 'phone_number_id' },
+        { status: 409 }
+      )
+    }
 
     // Encrypt sensitive tokens before storing
     let encryptedAccessToken: string
@@ -510,6 +538,9 @@ export async function POST(request: Request) {
       registered_at: registrationError ? null : registeredAt,
       subscribed_apps_at: subscribedAppsAt ?? null,
       last_registration_error: registrationError,
+      label,
+      display_phone_number: phoneInfo?.display_phone_number ?? null,
+      verified_name: phoneInfo?.verified_name ?? null,
       updated_at: new Date().toISOString(),
     }
 
@@ -517,6 +548,7 @@ export async function POST(request: Request) {
       const { error: updateError } = await supabase
         .from('whatsapp_config')
         .update(baseRow)
+        .eq('id', existing.id)
         .eq('account_id', accountId)
 
       if (updateError) {
@@ -531,11 +563,17 @@ export async function POST(request: Request) {
       // (NOT NULL post-017, UNIQUE so duplicates trip the constraint
       // up-front), `user_id` is the audit column identifying which
       // member of the account saved the config.
+      // The account's first number becomes its default.
+      const { count: otherNumbers } = await supabase
+        .from('whatsapp_config')
+        .select('id', { count: 'exact', head: true })
+        .eq('account_id', accountId)
       const { error: insertError } = await supabase
         .from('whatsapp_config')
         .insert({
           account_id: accountId,
           user_id: user.id,
+          is_default: !otherNumbers,
           ...baseRow,
         })
 
@@ -587,7 +625,7 @@ export async function POST(request: Request) {
  * Used by the "Reset Configuration" button to recover from a corrupted
  * encrypted token (mismatched ENCRYPTION_KEY across environments).
  */
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
     const supabase = await createClient()
 
@@ -608,9 +646,22 @@ export async function DELETE() {
       )
     }
 
+    const target = await getWhatsAppConfig<{ id: string; is_default: boolean }>(
+      supabase,
+      accountId,
+      { configId: new URL(request.url).searchParams.get('id') },
+      'id, is_default',
+    )
+    if (!target) {
+      return NextResponse.json({ error: 'WhatsApp number not found.' }, { status: 404 })
+    }
+
+    // Its conversations keep their history (FK SET NULL) and reply from
+    // the default number afterwards.
     const { error: deleteError } = await supabase
       .from('whatsapp_config')
       .delete()
+      .eq('id', target.id)
       .eq('account_id', accountId)
 
     if (deleteError) {
@@ -621,9 +672,85 @@ export async function DELETE() {
       )
     }
 
+    if (target.is_default) {
+      const next = await getWhatsAppConfig<{ id: string }>(supabase, accountId, {}, 'id')
+      if (next) {
+        await supabase.from('whatsapp_config').update({ is_default: true }).eq('id', next.id)
+      }
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error in WhatsApp config DELETE:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+/**
+ * PATCH /api/whatsapp/config  { id, label?, is_default? }
+ *
+ * Rename a number or make it the account default — no Meta round-trip,
+ * so (unlike POST) it doesn't need the access token re-entered. RLS
+ * limits whatsapp_config UPDATE to admins.
+ */
+export async function PATCH(request: Request) {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const accountId = await resolveAccountId(supabase, user.id)
+    if (!accountId) {
+      return NextResponse.json(
+        { error: 'Your profile is not linked to an account.' },
+        { status: 403 },
+      )
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const id = typeof body.id === 'string' ? body.id : ''
+    const { data: row } = await supabase
+      .from('whatsapp_config')
+      .select('id')
+      .eq('id', id)
+      .eq('account_id', accountId)
+      .maybeSingle()
+    if (!row) {
+      return NextResponse.json({ error: 'WhatsApp number not found.' }, { status: 404 })
+    }
+
+    if (typeof body.label === 'string') {
+      const { error } = await supabase
+        .from('whatsapp_config')
+        .update({ label: body.label.trim().slice(0, 60) || null })
+        .eq('id', id)
+      if (error) {
+        return NextResponse.json({ error: 'Failed to rename number' }, { status: 500 })
+      }
+    }
+
+    if (body.is_default === true) {
+      // One default per account (partial unique index) — clear first.
+      const { error: clearErr } = await supabase
+        .from('whatsapp_config')
+        .update({ is_default: false })
+        .eq('account_id', accountId)
+        .neq('id', id)
+      const { error: setErr } = clearErr
+        ? { error: clearErr }
+        : await supabase.from('whatsapp_config').update({ is_default: true }).eq('id', id)
+      if (setErr) {
+        return NextResponse.json({ error: 'Failed to set default number' }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error in WhatsApp config PATCH:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

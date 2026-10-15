@@ -1,4 +1,5 @@
 import { sendTextMessage, sendTemplateMessage } from '@/lib/whatsapp/meta-api'
+import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve'
 import type { InteractiveMessagePayload } from '@/lib/whatsapp/interactive'
 import {
   engineSendInteractiveButtons,
@@ -144,12 +145,12 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
   }
   const sanitized = sendTarget.target
 
-  const { data: config, error: configErr } = await db
-    .from('whatsapp_config')
-    .select('*')
-    .eq('account_id', input.accountId)
-    .single()
-  if (configErr || !config) {
+  const config = await getWhatsAppConfig<{ phone_number_id: string; access_token: string }>(
+    db,
+    input.accountId,
+    { conversationId: input.conversationId },
+  )
+  if (!config) {
     throw new Error('WhatsApp not configured for this account')
   }
 

@@ -165,7 +165,9 @@ export function templateContentText(
   params: string[],
   callerText?: string | null
 ): string | null {
-  if (callerText) return callerText;
-  if (!row?.body_text) return null;
-  return renderTemplateBody(row.body_text, params);
+  const text = callerText || (row?.body_text ? renderTemplateBody(row.body_text, params) : null);
+  if (!text || !row?.carousel_cards?.length) return text;
+  // Carousel cards are static — list them so the inbox shows what was sent.
+  const cards = row.carousel_cards.map((c, i) => `▸ Card ${i + 1}: ${c.body_text}`);
+  return `${text}\n\n${cards.join('\n')}`;
 }

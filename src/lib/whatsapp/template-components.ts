@@ -11,13 +11,14 @@
  */
 
 import type { TemplatePayload } from './template-validators';
-import type { TemplateButton } from '@/types';
+import type { CarouselCard, TemplateButton } from '@/types';
 
 export interface MetaComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS' | 'CAROUSEL';
   format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
   text?: string;
   buttons?: MetaButtonPayload[];
+  cards?: { components: MetaComponent[] }[];
   example?: {
     header_text?: string[];
     header_url?: string[];
@@ -114,6 +115,31 @@ function buildButtonsComponent(payload: TemplatePayload): MetaComponent | null {
   };
 }
 
+function buildCarouselComponent(payload: TemplatePayload): MetaComponent | null {
+  if (!payload.carousel_cards?.length) return null;
+  return {
+    type: 'CAROUSEL',
+    cards: payload.carousel_cards.map((card: CarouselCard) => {
+      const header: MetaComponent = {
+        type: 'HEADER',
+        format: card.header_type === 'video' ? 'VIDEO' : 'IMAGE',
+      };
+      if (card.header_handle) {
+        header.example = { header_handle: [card.header_handle] };
+      } else if (card.header_media_url) {
+        header.example = { header_url: [card.header_media_url] };
+      }
+      return {
+        components: [
+          header,
+          { type: 'BODY', text: card.body_text },
+          { type: 'BUTTONS', buttons: card.buttons.map(buildButtonPayload) },
+        ],
+      };
+    }),
+  };
+}
+
 export interface MetaTemplateSubmitPayload {
   name: string;
   category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
@@ -132,7 +158,8 @@ const CATEGORY_TO_META: Record<
 
 /**
  * Assemble the full submit payload (name + category + language +
- * components in canonical order: HEADER → BODY → FOOTER → BUTTONS).
+ * components in canonical order: HEADER → BODY → FOOTER → BUTTONS,
+ * or BODY → CAROUSEL for carousel templates).
  */
 export function buildMetaTemplatePayload(
   payload: TemplatePayload,
@@ -145,6 +172,8 @@ export function buildMetaTemplatePayload(
   if (footer) components.push(footer);
   const buttons = buildButtonsComponent(payload);
   if (buttons) components.push(buttons);
+  const carousel = buildCarouselComponent(payload);
+  if (carousel) components.push(carousel);
 
   return {
     name: payload.name,

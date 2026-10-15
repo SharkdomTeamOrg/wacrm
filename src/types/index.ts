@@ -179,6 +179,9 @@ export interface Conversation {
   unread_count: number;
   created_at: string;
   updated_at: string;
+  /** Business number this thread is on (migration 044). NULL only for
+   *  threads whose number was removed — replies then use the default. */
+  whatsapp_config_id?: string | null;
   contact?: Contact;
   /**
    * AI auto-reply state for this thread (migration 029 + 033):
@@ -295,6 +298,13 @@ export interface WhatsAppConfig {
   id: string;
   user_id: string;
   phone_number_id: string;
+  /** Admin-facing name for this number, e.g. "US Sales" (migration 044). */
+  label?: string | null;
+  /** "+1 555-0100" as Meta reports it, cached on save. */
+  display_phone_number?: string | null;
+  verified_name?: string | null;
+  /** The account's fallback number — one per account. */
+  is_default?: boolean;
   waba_id?: string;
   access_token: string;
   verify_token?: string;
@@ -344,6 +354,20 @@ export interface TemplateSampleValues {
   header?: string[];
 }
 
+/**
+ * One card of a media-card carousel template. Every card in a template
+ * must share the same header format and the same button types in the
+ * same order (Meta rule). Card body and button URLs are static in v1 —
+ * variables are only supported in the top-level body.
+ */
+export interface CarouselCard {
+  header_type: 'image' | 'video';
+  header_media_url?: string;
+  header_handle?: string;
+  body_text: string;
+  buttons: TemplateButton[];
+}
+
 export interface MessageTemplate {
   id: string;
   user_id: string;
@@ -357,6 +381,8 @@ export interface MessageTemplate {
   body_text: string;
   footer_text?: string;
   buttons?: TemplateButton[];
+  /** Present only on carousel templates (2–10 cards). */
+  carousel_cards?: CarouselCard[] | null;
   sample_values?: TemplateSampleValues;
   status?: MessageTemplateStatus;
   meta_template_id?: string;

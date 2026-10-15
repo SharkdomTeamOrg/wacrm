@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import {
   AlertTriangle,
   Loader2,
+  LogOut,
   Mail,
   MailX,
   Plus,
@@ -254,6 +255,22 @@ export function MembersTab() {
     }
   }
 
+  async function handleLeave() {
+    if (!confirm(t('leaveConfirm'))) return;
+    try {
+      const res = await fetch('/api/account/leave', { method: 'POST' });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        toast.error(payload.error || t('leaveFailed'));
+        return;
+      }
+      // Full reload: every cached query is scoped to the old account.
+      window.location.href = '/dashboard';
+    } catch {
+      toast.error(t('networkError'));
+    }
+  }
+
   async function handleRevoke(invite: Invitation) {
     try {
       const res = await fetch(`/api/account/invitations/${invite.id}`, {
@@ -454,6 +471,17 @@ export function MembersTab() {
                         user moused over. Now red is the default
                         state with a darker shade on hover so the
                         affordance reads at-a-glance. */}
+                    {isSelf && !isOwnerRow && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleLeave}
+                        className="border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:border-red-500/60 hover:text-red-200"
+                      >
+                        <LogOut className="size-4" />
+                        {t('leaveBtn')}
+                      </Button>
+                    )}
                     {canManageMembers && !isOwnerRow && !isSelf && (
                       <Button
                         variant="outline"

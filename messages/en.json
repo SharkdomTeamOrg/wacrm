@@ -1,5 +1,10 @@
 {
   "LoginPage": {
+    "resendConfirmation": "Resend confirmation email",
+    "resendSending": "Sending…",
+    "resendSent": "Sent — check your inbox (and spam).",
+    "continueWithGoogle": "Continue with Google",
+    "orDivider": "or",
     "titleAccept": "Sign in to accept",
     "titleWelcome": "Welcome back",
     "descAccept": "Sign in and we'll take you to the invitation.",
@@ -17,6 +22,8 @@
     "linkInvalid": "That link couldn’t be used to sign you in. If you were confirming your email, it may already be verified — just sign in below. For a password reset, request a new link and open it in the same browser you requested it from."
   },
   "Sidebar": {
+    "inboxNumber": "Inbox number",
+    "allNumbers": "All numbers",
     "title": "CRM Template for WhatsApp",
     "primaryNav": "Primary",
     "dashboard": "Dashboard",
@@ -295,7 +302,10 @@
       "finalUrl": "Final URL: {url}",
       "back": "Back",
       "cancel": "Cancel",
-      "send": "Send template"
+      "send": "Send template",
+      "headerMediaLabel": "Header {kind}",
+      "headerMediaUpload": "Upload file",
+      "headerMediaHint": "This template has no saved header media (e.g. it was synced from Meta). Paste a public HTTPS link or upload a file."
     },
     "sidebar": {
       "contactInfo": "Contact info",
@@ -820,6 +830,8 @@
         }
       },
       "scheduleSend": {
+        "sendFrom": "Send from",
+        "defaultNumber": "default",
         "title": "Review & Send",
         "subtitle": "Give your broadcast a name and confirm sending.",
         "broadcastName": "Broadcast Name",
@@ -1337,6 +1349,9 @@
       "loading": "Loading…"
     },
     "members": {
+      "leaveBtn": "Leave",
+      "leaveConfirm": "Leave this account? You'll lose access to its inbox and data, and move to your own personal account. An admin can invite you back.",
+      "leaveFailed": "Could not leave the account",
       "title": "Team members",
       "description": "People with access to this account. Roles control what each teammate can do.",
       "inviteMember": "Invite member",
@@ -1375,6 +1390,8 @@
       "removeBtn": "Remove member"
     },
     "invite": {
+      "sendViaEmail": "Send via email",
+      "emailSubject": "You're invited to join {accountName} on wacrm",
       "inviteCreated": "Invite created",
       "inviteCreatedDesc": "Share this link with your new teammate. They'll be able to sign up (or sign in) and join the account as <bold>{role}</bold>. The link is valid for <bold>{days} {days, plural, =1 {day} other {days}}</bold>.",
       "inviteLink": "Invite link",
@@ -1553,7 +1570,22 @@
       "toastInvalidDocument": "Header document must be a PDF, Word, PowerPoint, Excel or text file.",
       "toastMediaTooLarge": "File is {size} MB — the upload limit is {max} MB.",
       "toastUploadSuccess": "File uploaded.",
-      "toastUploadFailed": "Upload failed."
+      "toastUploadFailed": "Upload failed.",
+      "templateType": "Template type",
+      "typeStandard": "Standard",
+      "typeCarousel": "Carousel (swipeable cards)",
+      "carouselHint": "A short message followed by 2–10 swipeable cards, each with its own image or video, text and buttons. Every card uses the same media type and the same buttons.",
+      "carouselBadge": "Carousel · {count} cards",
+      "cardMediaType": "Card media",
+      "cardButtonsLayout": "Card buttons (same on every card)",
+      "addCardButton": "Add card button",
+      "cards": "Cards",
+      "addCard": "Add card",
+      "cardTitle": "Card {n}",
+      "removeCard": "Remove card",
+      "cardBodyPlaceholder": "Card text (max 160 chars, e.g. 20% off dorm beds in Goa)",
+      "cardUrlPlaceholder": "https://example.com/offer",
+      "preview": "Preview"
     },
     "roles": {
       "admin": "Admin",
@@ -1668,7 +1700,18 @@
       "phoneNumberIdNotNumeric": "Phone Number ID must contain only digits. Copy the numeric id from Meta → WhatsApp → API Setup, not the phone number itself.",
       "wabaIdNotNumeric": "WhatsApp Business Account ID must contain only digits. Copy it from Meta → WhatsApp → API Setup.",
       "wabaSubscribed": "The WhatsApp Business Account is subscribed to this app — inbound webhooks can be delivered.",
-      "wabaNotSubscribed": "The WhatsApp Business Account is not subscribed to this app, so Meta will not deliver inbound webhooks. Re-enter the access token and save again to subscribe it."
+      "wabaNotSubscribed": "The WhatsApp Business Account is not subscribed to this app, so Meta will not deliver inbound webhooks. Re-enter the access token and save again to subscribe it.",
+      "numbersTitle": "WhatsApp numbers",
+      "numbersDesc": "Connect one or more numbers (any country). Each number gets its own inbox; replies always go out from the number the customer wrote to.",
+      "addNumber": "Add number",
+      "noNumbersYet": "No number connected yet — fill in the form below.",
+      "defaultBadge": "Default",
+      "makeDefault": "Make default",
+      "makeDefaultFailed": "Could not change the default number",
+      "defaultUpdated": "Default number updated",
+      "addingNewNumber": "Adding a new number — fill in its credentials below and save.",
+      "numberLabel": "Label",
+      "numberLabelPlaceholder": "e.g. US Sales, UK Support"
     },
     "sections": {
       "overview": "Overview",
@@ -1900,6 +1943,8 @@
     }
   },
   "SignupPage": {
+    "continueWithGoogle": "Continue with Google",
+    "orDivider": "or",
     "passwordsMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 6 characters",
     "checkEmailTitle": "Check your email",

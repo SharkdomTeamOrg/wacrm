@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { CarouselPreview } from '@/components/interactive/carousel-preview';
 import { createClient } from '@/lib/supabase/client';
 import { Contact, CustomField, MessageTemplate } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -411,6 +412,9 @@ export function Step3Personalize({
             <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
           )}
         </div>
+        {template.carousel_cards?.length ? (
+          <CarouselPreview body={previewText} cards={template.carousel_cards} />
+        ) : (
         <div className="rounded-lg bg-[#0e1a12] p-3">
           <div className="ml-auto max-w-[85%] rounded-lg bg-primary/30 px-3 py-2 shadow-sm">
             <p className="whitespace-pre-wrap text-sm text-primary">
@@ -418,6 +422,7 @@ export function Step3Personalize({
             </p>
           </div>
         </div>
+        )}
       </div>
 
       {unmappedKeys.length > 0 && (

@@ -61,17 +61,18 @@ function makeDb(rpcResult: { data: unknown; error: unknown }) {
   const database = {
     from(table: string) {
       if (table === 'whatsapp_config') {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: () =>
-                Promise.resolve({
-                  data: { phone_number_id: 'pn-1', access_token: 'enc' },
-                  error: null,
-                }),
+        // getWhatsAppConfig default-number lookup: select().eq().order().order().limit()
+        const chain: Record<string, unknown> = {
+          select: () => chain,
+          eq: () => chain,
+          order: () => chain,
+          limit: () =>
+            Promise.resolve({
+              data: [{ id: 'cfg-1', phone_number_id: 'pn-1', access_token: 'enc' }],
+              error: null,
             }),
-          }),
         };
+        return chain;
       }
       if (table === 'message_templates') {
         const chain: Record<string, unknown> = {
@@ -82,9 +83,10 @@ function makeDb(rpcResult: { data: unknown; error: unknown }) {
         return chain;
       }
       if (table === 'broadcasts' || table === 'broadcast_recipients') {
-        calls.usedDirectInsert++;
         return {
-          insert: () => ({
+          // Stamping the sending number on the RPC-created row (044) is fine.
+          update: () => ({ eq: () => Promise.resolve({ error: null }) }),
+          insert: () => (calls.usedDirectInsert++, {
             select: () => ({
               single: () =>
                 Promise.resolve({ data: { id: 'orphan' }, error: null }),

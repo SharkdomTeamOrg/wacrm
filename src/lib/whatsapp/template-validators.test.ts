@@ -45,6 +45,13 @@ describe('validateTemplateName', () => {
 });
 
 describe('validateBody', () => {
+  it.each(['Hi {{}}, welcome', 'Hi {{first_name}}', 'Hi {{ 1 }}'])(
+    'rejects non-numbered placeholder in %s',
+    (body) => {
+      expect(() => validateBody(body)).toThrow(/numbered variables/);
+    },
+  );
+
   it('rejects empty', () => {
     expect(() => validateBody('   ')).toThrow(/required/);
   });

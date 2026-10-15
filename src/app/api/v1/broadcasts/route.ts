@@ -64,6 +64,8 @@ export async function POST(request: Request) {
     const plan = await createBroadcast(ctx.supabase, ctx.accountId, auditUserId, {
       name: typeof body.name === 'string' ? body.name : null,
       templateName,
+      whatsappConfigId:
+        typeof body.from_number_id === 'string' ? body.from_number_id : null,
       templateLanguage:
         typeof body.template_language === 'string'
           ? body.template_language

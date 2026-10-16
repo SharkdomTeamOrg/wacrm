@@ -27,6 +27,8 @@ import { extractVariableIndices } from "@/lib/whatsapp/template-validators";
 import { MEDIA_HEADER_SPECS, isMediaHeaderKind } from "@/lib/whatsapp/media-header-types";
 import { uploadAccountMedia } from "@/lib/storage/upload-media";
 import { toast } from "sonner";
+import { useWhatsAppNumbers } from "@/hooks/use-whatsapp-numbers";
+import { flagForPhone, numberName } from "@/lib/whatsapp/number-label";
 import { useTranslations } from "next-intl";
 
 export interface TemplateSendValues {
@@ -35,12 +37,21 @@ export interface TemplateSendValues {
   /** Media link for an image/video/document header with no saved link. */
   headerMediaUrl?: string;
   buttonParams?: Record<number, string>;
+  /** Number to send from (only when the picker offers a choice). */
+  whatsappConfigId?: string | null;
 }
 
 interface TemplatePickerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (template: MessageTemplate, values: TemplateSendValues) => void;
+  /**
+   * Offer a "Send from" number choice (accounts with 2+ numbers). Only for
+   * sends that may start a thread — inside a thread the number is fixed.
+   */
+  chooseNumber?: boolean;
+  /** Preselected number; the account default when omitted. */
+  initialNumberId?: string | null;
 }
 
 function renderBodyPreview(body: string, params: string[]): string {
@@ -91,8 +102,19 @@ export function TemplatePicker({
   open,
   onOpenChange,
   onSelect,
+  chooseNumber = false,
+  initialNumberId = null,
 }: TemplatePickerProps) {
   const t = useTranslations("Inbox.templatePicker");
+  const numbers = useWhatsAppNumbers();
+  const showNumberChoice = chooseNumber && numbers.length > 1;
+  // null = not touched yet → the preselected / default number.
+  const [fromNumberId, setFromNumberId] = useState<string | null>(null);
+  const effectiveNumberId =
+    fromNumberId ??
+    (numbers.some((n) => n.id === initialNumberId) ? initialNumberId : null) ??
+    numbers.find((n) => n.is_default)?.id ??
+    null;
 
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,7 +179,10 @@ export function TemplatePicker({
   }
 
   function handleOpenChange(next: boolean) {
-    if (!next) resetSelection();
+    if (!next) {
+      resetSelection();
+      setFromNumberId(null);
+    }
     onOpenChange(next);
   }
 
@@ -169,7 +194,10 @@ export function TemplatePicker({
       !slots.needsHeaderMedia &&
       slots.urlButtonSlots.length === 0;
     if (noInputsNeeded) {
-      onSelect(template, { body: [] });
+      onSelect(template, {
+        body: [],
+        ...(showNumberChoice ? { whatsappConfigId: effectiveNumberId } : {}),
+      });
       handleOpenChange(false);
       return;
     }
@@ -183,6 +211,7 @@ export function TemplatePicker({
   function confirm() {
     if (!selected) return;
     const values: TemplateSendValues = { body: params };
+    if (showNumberChoice) values.whatsappConfigId = effectiveNumberId;
     if (headerText.trim()) values.headerText = headerText.trim();
     if (headerMediaUrl.trim()) values.headerMediaUrl = headerMediaUrl.trim();
     if (Object.keys(buttonParams).length > 0) {
@@ -222,6 +251,27 @@ export function TemplatePicker({
               : t("pickTemplate")}
           </DialogDescription>
         </DialogHeader>
+
+        {showNumberChoice && (
+          <div className="flex items-center gap-2">
+            <Label htmlFor="template-send-from" className="shrink-0 text-xs text-muted-foreground">
+              {t("sendFrom")}
+            </Label>
+            <select
+              id="template-send-from"
+              value={effectiveNumberId ?? ""}
+              onChange={(e) => setFromNumberId(e.target.value)}
+              className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {numbers.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {flagForPhone(n.display_phone_number)} {numberName(n)}
+                  {n.display_phone_number ? ` (${n.display_phone_number})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {!selected ? (
           <div className="max-h-[60vh] space-y-2 overflow-y-auto">

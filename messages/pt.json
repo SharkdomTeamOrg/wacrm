@@ -143,10 +143,19 @@
     }
   },
   "Inbox": {
+    "newConversation": {
+      "title": "Nova mensagem",
+      "description": "Escolha um contato e depois um modelo — o WhatsApp só permite que uma empresa inicie uma conversa com um modelo aprovado.",
+      "searchPlaceholder": "Buscar contatos por nome ou telefone",
+      "noContacts": "Nenhum contato encontrado. Adicione-os primeiro em Contatos.",
+      "sent": "Modelo enviado para {name}",
+      "failed": "Falha ao enviar o modelo: {reason}"
+    },
     "page": {
       "whatsappNotConnected": "O WhatsApp® não está conectado. Vá em Configurações para conectar sua conta."
     },
     "conversationList": {
+      "newMessage": "Nova mensagem",
       "searchPlaceholder": "Buscar conversas...",
       "filterAll": "Todas",
       "filterUnread": "Não lidas",
@@ -290,6 +299,7 @@
       "cancelReply": "Cancelar resposta"
     },
     "templatePicker": {
+      "sendFrom": "Enviar de",
       "sendTemplate": "Enviar modelo",
       "fillPlaceholders": "Preencha as variáveis para renderizar este modelo. A Meta exige que todas as variáveis sejam definidas.",
       "pickTemplate": "Escolha um modelo aprovado do WhatsApp para enviar a este contato.",

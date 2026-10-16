@@ -11,6 +11,7 @@ import {
   TemplatePicker,
   type TemplateSendValues,
 } from '@/components/inbox/template-picker';
+import { sendTemplateToContact } from '@/lib/inbox/send-template-to-contact';
 import {
   Sheet,
   SheetContent,
@@ -343,37 +344,12 @@ export function ContactDetailView({
     if (!contactId) return;
     setSendingTemplate(true);
     try {
-      const res = await fetch('/api/whatsapp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // No conversation_id — the route find-or-creates one for this
-          // contact, mirroring the inbox template-send payload otherwise.
-          contact_id: contactId,
-          message_type: 'template',
-          template_name: template.name,
-          template_language: template.language,
-          template_message_params: {
-            body: values.body,
-            headerText: values.headerText,
-            headerMediaUrl: values.headerMediaUrl,
-            buttonParams: values.buttonParams,
-          },
-          template_params: values.body,
-        }),
-      });
-
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const reason = payload?.error || `HTTP ${res.status}`;
-        toast.error(t('toastTemplateFailed', { reason }));
-        return;
-      }
-
+      // Sent on the thread for the chosen number (default if no choice).
+      await sendTemplateToContact(contactId, template, values);
       toast.success(t('toastTemplateSent', { name: template.name }));
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'network error';
-      toast.error(`Failed to send template: ${reason}`);
+      toast.error(t('toastTemplateFailed', { reason }));
     } finally {
       setSendingTemplate(false);
     }
@@ -766,6 +742,7 @@ export function ContactDetailView({
       open={templatePickerOpen}
       onOpenChange={setTemplatePickerOpen}
       onSelect={handleSendTemplate}
+      chooseNumber
     />
     </>
   );

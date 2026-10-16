@@ -217,7 +217,12 @@ describe('POST /api/whatsapp/send — contact_id template path', () => {
     expect(conversationInserts[0]).toMatchObject({
       account_id: 'acct-1',
       contact_id: 'contact-1',
+      // on the sending number (the default, as none was chosen) — this is
+      // what makes the thread show up in that number's inbox
+      whatsapp_config_id: 'cfg-1',
     })
+    // the caller (Inbox → New message) can open the new thread
+    expect(json.conversation_id).toBe('conv-new')
 
     // The template was sent to the contact's number.
     expect(sendTemplateMessage).toHaveBeenCalledTimes(1)

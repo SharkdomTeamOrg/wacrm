@@ -54,6 +54,7 @@ const contactFields = [
   { value: 'name', labelKey: 'name' },
   { value: 'phone', labelKey: 'phone' },
   { value: 'email', labelKey: 'email' },
+  { value: 'company', labelKey: 'company' },
 ];
 
 const SAMPLE_CONTACT: Contact = {

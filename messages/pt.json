@@ -857,7 +857,8 @@
         "fieldMap": {
           "name": "Nome",
           "phone": "Telefone",
-          "email": "E-mail"
+          "email": "E-mail",
+          "company": "Empresa"
         }
       },
       "scheduleSend": {

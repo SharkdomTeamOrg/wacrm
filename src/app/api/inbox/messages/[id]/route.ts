@@ -43,12 +43,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Failed to delete message.' }, { status: 500 })
     }
 
-    // Keep the chat-list preview honest: show the latest message still
-    // visible (or nothing). last_message_at is left alone so the chat
-    // doesn't jump around in the list.
+    // Keep both the chat-list preview and its timestamp aligned with the
+    // latest message still visible after hiding this one.
     const { data: latest } = await supabase
       .from('messages')
-      .select('content_text, content_type')
+      .select('content_text, content_type, created_at')
       .eq('conversation_id', msg.conversation_id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -58,7 +57,10 @@ export async function DELETE(
       : null
     await supabase
       .from('conversations')
-      .update({ last_message_text: preview })
+      .update({
+        last_message_text: preview,
+        last_message_at: latest?.[0]?.created_at ?? null,
+      })
       .eq('id', msg.conversation_id)
       .eq('account_id', accountId)
 

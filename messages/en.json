@@ -143,10 +143,19 @@
     }
   },
   "Inbox": {
+    "newConversation": {
+      "title": "New message",
+      "description": "Pick a contact, then a template — WhatsApp only lets a business start a conversation with an approved template.",
+      "searchPlaceholder": "Search contacts by name or phone",
+      "noContacts": "No contacts found. Add them in Contacts first.",
+      "sent": "Template sent to {name}",
+      "failed": "Failed to send template: {reason}"
+    },
     "page": {
       "whatsappNotConnected": "WhatsApp® is not connected. Go to Settings to connect your account."
     },
     "conversationList": {
+      "newMessage": "New message",
       "searchPlaceholder": "Search conversations...",
       "filterAll": "All",
       "filterUnread": "Unread",
@@ -290,6 +299,7 @@
       "cancelReply": "Cancel reply"
     },
     "templatePicker": {
+      "sendFrom": "Send from",
       "sendTemplate": "Send template",
       "fillPlaceholders": "Fill in the placeholders to render this template. Meta requires every variable to be set.",
       "pickTemplate": "Pick an approved WhatsApp template to send to this contact.",

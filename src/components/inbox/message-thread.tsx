@@ -55,6 +55,8 @@ import { buildReplyPreview } from "./reply-quote";
 import { renderTemplateBody } from "@/lib/whatsapp/template-body";
 import { contactHandle } from "@/lib/whatsapp/wa-identity";
 import { toast } from "sonner";
+import { useWhatsAppNumbers } from "@/hooks/use-whatsapp-numbers";
+import { flagForPhone, numberName } from "@/lib/whatsapp/number-label";
 
 interface ReplyDraft {
   id: string;
@@ -165,6 +167,13 @@ export function MessageThread({
   contactPanelOpen,
   onToggleContactPanel,
 }: MessageThreadProps) {
+  // Which business number this thread is on — only worth showing when the
+  // account has several (replies always go out from it).
+  const whatsappNumbers = useWhatsAppNumbers();
+  const threadNumber =
+    whatsappNumbers.length > 1
+      ? whatsappNumbers.find((n) => n.id === conversation?.whatsapp_config_id)
+      : undefined;
   const t = useTranslations("Inbox.messageThread");
   const tTimer = useTranslations("Inbox.sessionTimer");
   const tQuote = useTranslations("Inbox.replyQuote");
@@ -927,6 +936,8 @@ export function MessageThread({
             <h2 className="truncate text-sm font-semibold text-foreground">{displayName}</h2>
             <p className="truncate text-xs text-muted-foreground">
               {contactHandle(contact)}
+              {threadNumber &&
+                ` · ${flagForPhone(threadNumber.display_phone_number)} ${numberName(threadNumber)}`}
             </p>
           </div>
           {/* Session timer badge — hidden on the narrowest phones so

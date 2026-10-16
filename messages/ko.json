@@ -143,10 +143,19 @@
     }
   },
   "Inbox": {
+    "newConversation": {
+      "title": "새 메시지",
+      "description": "연락처를 선택한 다음 템플릿을 선택하세요. WhatsApp은 승인된 템플릿으로만 비즈니스가 대화를 시작할 수 있습니다.",
+      "searchPlaceholder": "이름 또는 전화번호로 연락처 검색",
+      "noContacts": "연락처가 없습니다. 먼저 연락처에서 추가하세요.",
+      "sent": "{name}님에게 템플릿을 보냈습니다",
+      "failed": "템플릿 전송 실패: {reason}"
+    },
     "page": {
       "whatsappNotConnected": "WhatsApp®이 연결되어 있지 않습니다. 설정으로 이동해 계정을 연결하세요."
     },
     "conversationList": {
+      "newMessage": "새 메시지",
       "searchPlaceholder": "대화 검색...",
       "filterAll": "전체",
       "filterUnread": "읽지 않음",
@@ -290,6 +299,7 @@
       "cancelReply": "답장 취소"
     },
     "templatePicker": {
+      "sendFrom": "발신 번호",
       "sendTemplate": "템플릿 보내기",
       "fillPlaceholders": "이 템플릿을 렌더링하려면 자리표시자를 채워주세요. Meta는 모든 변수 값을 요구합니다.",
       "pickTemplate": "이 연락처에 보낼 승인된 WhatsApp 템플릿을 선택하세요.",

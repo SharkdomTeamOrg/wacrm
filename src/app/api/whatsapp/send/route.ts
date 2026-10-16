@@ -1,4 +1,5 @@
 import { getWhatsAppConfig } from '@/lib/whatsapp/config-resolve'
+import { findOrCreateConversationRow } from '@/lib/whatsapp/resolve-conversation'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireRole, toErrorResponse } from '@/lib/auth/account'
@@ -59,6 +60,9 @@ export async function POST(request: Request) {
       template_message_params,
       interactive_payload,
       reply_to_message_id,
+      // contact_id path only: the number to send from (migration 044).
+      // Omitted → the account's default number.
+      whatsapp_config_id,
     } = body
 
     if ((!conversationIdInput && !contact_id) || !message_type) {
@@ -127,19 +131,38 @@ export async function POST(request: Request) {
         )
       }
 
-      const resolved = await findOrCreateConversation(
+      // The thread on the chosen (or default) number — a contact has one
+      // per number, so this is what puts the send in that number's inbox.
+      const config = await getWhatsAppConfig<{ id: string }>(
         supabase,
         accountId,
-        userId,
-        contact_id
+        { configId: typeof whatsapp_config_id === 'string' ? whatsapp_config_id : null },
+        'id'
       )
-      if (!resolved) {
+      if (!config) {
         return NextResponse.json(
-          { error: 'Failed to open a conversation for this contact' },
-          { status: 500 }
+          {
+            error: whatsapp_config_id
+              ? 'That WhatsApp number is not connected to this account.'
+              : 'WhatsApp not configured. Please set up your WhatsApp integration first.',
+          },
+          { status: 400 }
         )
       }
-      conversationId = resolved
+      try {
+        conversationId = await findOrCreateConversationRow(
+          supabase,
+          accountId,
+          contact_id,
+          userId,
+          config.id
+        )
+      } catch (err) {
+        if (err instanceof SendMessageError) {
+          return NextResponse.json({ error: err.message }, { status: err.status })
+        }
+        throw err
+      }
     }
 
     if (!conversationId) {
@@ -172,6 +195,9 @@ export async function POST(request: Request) {
         success: true,
         message_id: result.messageId,
         whatsapp_message_id: result.whatsappMessageId,
+        // Lets a contact-initiated send (Inbox → New message) open the
+        // thread it just created or reused.
+        conversation_id: conversationId,
       })
     } catch (err) {
       if (err instanceof SendMessageError) {
@@ -188,53 +214,4 @@ export async function POST(request: Request) {
     console.error('Error in WhatsApp send POST:', error)
     return toErrorResponse(error)
   }
-}
-
-type SendSupabase = Awaited<ReturnType<typeof createClient>>
-
-/**
- * Return the contact's conversation id in this account, creating one if
- * it doesn't exist yet. Mirrors the webhook's find-or-create so an
- * inbound-then-outbound (or outbound-first) sequence converges on a single
- * thread per contact. Runs under the caller's RLS — the conversations_insert
- * policy requires account agent membership, which the caller already is.
- */
-async function findOrCreateConversation(
-  supabase: SendSupabase,
-  accountId: string,
-  userId: string,
-  contactId: string,
-): Promise<string | null> {
-  // One thread per business number since migration 044: reuse the
-  // contact's most recently active one, else open one on the default number.
-  const { data: rows } = await supabase
-    .from('conversations')
-    .select('id')
-    .eq('account_id', accountId)
-    .eq('contact_id', contactId)
-    .order('last_message_at', { ascending: false, nullsFirst: false })
-    .limit(1)
-
-  if (rows?.[0]) return rows[0].id
-
-  const config = await getWhatsAppConfig<{ id: string }>(supabase, accountId, {}, 'id')
-  if (!config) return null
-
-  const { data: created, error } = await supabase
-    .from('conversations')
-    .insert({
-      account_id: accountId,
-      user_id: userId,
-      contact_id: contactId,
-      whatsapp_config_id: config.id,
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    console.error('Error creating conversation for contact send:', error.message)
-    return null
-  }
-
-  return created.id
 }

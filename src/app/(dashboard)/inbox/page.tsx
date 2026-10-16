@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { NewConversationDialog } from "@/components/inbox/new-conversation-dialog";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -62,6 +63,7 @@ function InboxPageInner() {
    * once on conversationId-change as usual.
    */
   const [resyncToken, setResyncToken] = useState(0);
+  const [newConversationOpen, setNewConversationOpen] = useState(false);
 
   /**
    * Whether the desktop contact sidebar (tags / deals / notes) is shown.
@@ -596,6 +598,34 @@ function InboxPageInner() {
             onConversationsLoaded={handleConversationsLoaded}
             resyncToken={resyncToken}
             numberId={numberId}
+            onNewConversation={() => setNewConversationOpen(true)}
+          />
+          <NewConversationDialog
+            open={newConversationOpen}
+            onOpenChange={setNewConversationOpen}
+            numberId={numberId}
+            onSent={async (conversationId) => {
+              // Open the thread directly — a ?c= deep link only resolves when
+              // a list refetch lands after the URL change, which races here.
+              const { data } = conversationId
+                ? await createClient()
+                    .from("conversations")
+                    .select(CONVERSATION_SELECT)
+                    .eq("id", conversationId)
+                    .maybeSingle()
+                : { data: null };
+              if (!data) {
+                setResyncToken((n) => n + 1);
+                return;
+              }
+              const conv = normalizeConversation(data);
+              setConversations((prev) =>
+                prev.some((c) => c.id === conv.id)
+                  ? prev.map((c) => (c.id === conv.id ? conv : c))
+                  : [conv, ...prev],
+              );
+              handleSelectConversation(conv);
+            }}
           />
         </div>
 

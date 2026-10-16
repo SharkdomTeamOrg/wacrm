@@ -143,10 +143,19 @@
     }
   },
   "Inbox": {
+    "newConversation": {
+      "title": "Nuevo mensaje",
+      "description": "Elige un contacto y luego una plantilla: WhatsApp solo permite que una empresa inicie una conversación con una plantilla aprobada.",
+      "searchPlaceholder": "Buscar contactos por nombre o teléfono",
+      "noContacts": "No se encontraron contactos. Agrégalos primero en Contactos.",
+      "sent": "Plantilla enviada a {name}",
+      "failed": "No se pudo enviar la plantilla: {reason}"
+    },
     "page": {
       "whatsappNotConnected": "WhatsApp® no está conectado. Ve a Configuración para conectar tu cuenta."
     },
     "conversationList": {
+      "newMessage": "Nuevo mensaje",
       "searchPlaceholder": "Buscar conversaciones...",
       "filterAll": "Todas",
       "filterUnread": "Sin leer",
@@ -290,6 +299,7 @@
       "cancelReply": "Cancelar respuesta"
     },
     "templatePicker": {
+      "sendFrom": "Enviar desde",
       "sendTemplate": "Enviar plantilla",
       "fillPlaceholders": "Completa las variables para renderizar esta plantilla. Meta exige que todas las variables estén definidas.",
       "pickTemplate": "Elige una plantilla aprobada de WhatsApp para enviar a este contacto.",

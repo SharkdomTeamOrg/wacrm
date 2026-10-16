@@ -27,10 +27,13 @@ import {
   RefreshCw,
   PanelRightOpen,
   PanelRightClose,
+  Trash2,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +74,7 @@ interface MessageThreadProps {
   onMessagesLoaded: (messages: Message[]) => void;
   onNewMessage: (message: Message) => void;
   onUpdateMessage: (id: string, updates: Partial<Message>) => void;
+  onDeleteMessage: (id: string) => void;
   onStatusChange: (conversationId: string, status: ConversationStatus) => void;
   onAssignChange: (
     conversationId: string,
@@ -159,6 +163,7 @@ export function MessageThread({
   onMessagesLoaded,
   onNewMessage,
   onUpdateMessage,
+  onDeleteMessage,
   onStatusChange,
   onAssignChange,
   onBack,
@@ -178,9 +183,11 @@ export function MessageThread({
   const tTimer = useTranslations("Inbox.sessionTimer");
   const tQuote = useTranslations("Inbox.replyQuote");
 
-  const { user } = useAuth();
+  const { user, canSendMessages } = useAuth();
   const { getPresence, getRow, now } = usePresence();
   const [loading, setLoading] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
+  const [deletingMessage, setDeletingMessage] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -313,6 +320,7 @@ export function MessageThread({
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: true });
 
       if (cancelled) return;
@@ -1151,6 +1159,8 @@ export function MessageThread({
                         key={msg.id}
                         message={msg}
                         onReply={() => handleStartReply(msg)}
+                        onDelete={() => setMessageToDelete(msg)}
+                        canDelete={canSendMessages}
                         onReact={(emoji) => {
                           if (emoji) void postReaction(msg.id, emoji);
                         }}
@@ -1215,6 +1225,40 @@ export function MessageThread({
         onActiveIdChange={handleMediaChange}
         contactLabel={contactDisplayName}
       />
+
+      <Dialog open={!!messageToDelete} onOpenChange={(open) => !open && !deletingMessage && setMessageToDelete(null)}>
+        <DialogContent className="border-border bg-popover sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-popover-foreground">{t("deleteMessageTitle")}</DialogTitle>
+            <DialogDescription className="text-muted-foreground">{t("deleteMessageDescription")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" disabled={deletingMessage} onClick={() => setMessageToDelete(null)}>{t("cancel")}</Button>
+            <Button
+              variant="destructive"
+              disabled={deletingMessage}
+              onClick={async () => {
+                if (!messageToDelete) return;
+                setDeletingMessage(true);
+                try {
+                  const response = await fetch(`/api/inbox/messages/${messageToDelete.id}`, { method: "DELETE" });
+                  const data = await response.json().catch(() => ({}));
+                  if (!response.ok) throw new Error(data.error || t("deleteMessageFailed"));
+                  onDeleteMessage(messageToDelete.id);
+                  setMessageToDelete(null);
+                  toast.success(t("messageDeleted"));
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : t("deleteMessageFailed"));
+                } finally {
+                  setDeletingMessage(false);
+                }
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />{t("deleteForMe")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

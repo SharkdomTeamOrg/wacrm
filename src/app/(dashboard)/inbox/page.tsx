@@ -15,6 +15,15 @@ import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +73,9 @@ function InboxPageInner() {
    */
   const [resyncToken, setResyncToken] = useState(0);
   const [newConversationOpen, setNewConversationOpen] = useState(false);
+  // Chat pending the "Delete chat?" confirmation (migration 046).
+  const [chatToDelete, setChatToDelete] = useState<Conversation | null>(null);
+  const [deletingChat, setDeletingChat] = useState(false);
 
   /**
    * Whether the desktop contact sidebar (tags / deals / notes) is shown.
@@ -271,6 +283,11 @@ function InboxPageInner() {
       }
 
       if (event.eventType === "UPDATE") {
+        if (newMsg.deleted_at) {
+          // A teammate hid this message for the whole shared inbox.
+          setMessages((prev) => prev.filter((m) => m.id !== newMsg.id));
+          return;
+        }
         // Update message status
         setMessages((prev) =>
           prev.map((m) => (m.id === newMsg.id ? { ...m, ...newMsg } : m))
@@ -288,6 +305,20 @@ function InboxPageInner() {
       old: Partial<Conversation>;
     }) => {
       const conv = event.new;
+
+      if (event.eventType === "DELETE") {
+        // A teammate deleted this chat — drop it, and close it if open.
+        const goneId = event.old?.id;
+        if (goneId) {
+          setConversations((prev) => prev.filter((c) => c.id !== goneId));
+          if (activeConversation?.id === goneId) {
+            setActiveConversation(null);
+            setActiveContact(null);
+            setMessages([]);
+          }
+        }
+        return;
+      }
 
       if (event.eventType === "INSERT") {
         // Prepend immediately for snappy UX so the new conv shows in the
@@ -529,6 +560,10 @@ function InboxPageInner() {
     []
   );
 
+  const handleDeleteMessage = useCallback((id: string) => {
+    setMessages((prev) => prev.filter((message) => message.id !== id));
+  }, []);
+
   const handleStatusChange = useCallback(
     (conversationId: string, status: ConversationStatus) => {
       setConversations((prev) =>
@@ -599,7 +634,63 @@ function InboxPageInner() {
             resyncToken={resyncToken}
             numberId={numberId}
             onNewConversation={() => setNewConversationOpen(true)}
+            onArchive={async (conv, archived) => {
+              const res = await fetch(`/api/inbox/conversations/${conv.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ archived }),
+              });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                toast.error(data.error || t("archiveFailed"));
+                return;
+              }
+              setConversations((prev) =>
+                prev.map((c) => (c.id === conv.id ? { ...c, archived_at: data.archived_at } : c)),
+              );
+              toast.success(archived ? t("chatArchived") : t("chatUnarchived"));
+            }}
+            onDelete={(conv) => setChatToDelete(conv)}
           />
+          <Dialog open={!!chatToDelete} onOpenChange={(o) => !o && !deletingChat && setChatToDelete(null)}>
+            <DialogContent className="border-border bg-popover sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="text-popover-foreground">{t("deleteChatTitle")}</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  {t("deleteChatDesc", {
+                    name: chatToDelete?.contact?.name || chatToDelete?.contact?.phone || "",
+                  })}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" disabled={deletingChat} onClick={() => setChatToDelete(null)}>
+                  {t("cancel")}
+                </Button>
+                <Button
+                  disabled={deletingChat}
+                  className="bg-red-600 text-white hover:bg-red-700"
+                  onClick={async () => {
+                    if (!chatToDelete) return;
+                    setDeletingChat(true);
+                    const res = await fetch(`/api/inbox/conversations/${chatToDelete.id}`, { method: "DELETE" });
+                    const data = await res.json().catch(() => ({}));
+                    setDeletingChat(false);
+                    if (!res.ok) {
+                      toast.error(data.error || t("deleteChatFailed"));
+                      return;
+                    }
+                    const goneId = chatToDelete.id;
+                    setConversations((prev) => prev.filter((c) => c.id !== goneId));
+                    if (activeConversation?.id === goneId) handleCloseConversation();
+                    setChatToDelete(null);
+                    toast.success(t("chatDeleted"));
+                  }}
+                >
+                  {t("deleteChat")}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <NewConversationDialog
             open={newConversationOpen}
             onOpenChange={setNewConversationOpen}
@@ -652,6 +743,7 @@ function InboxPageInner() {
             onMessagesLoaded={handleMessagesLoaded}
             onNewMessage={handleNewMessage}
             onUpdateMessage={handleUpdateMessage}
+            onDeleteMessage={handleDeleteMessage}
             onStatusChange={handleStatusChange}
             onAssignChange={handleAssignChange}
             onBack={handleCloseConversation}

@@ -161,6 +161,7 @@
       "deleteChatDesc": "Delete the conversation with {name} and its messages from wacrm? This cannot be undone.",
       "deleteChatFailed": "Could not delete the chat.",
       "chatDeleted": "Chat deleted",
+      "deleteChat": "Delete chat",
       "cancel": "Cancel"
     },
     "conversationList": {
@@ -856,7 +857,8 @@
         "fieldMap": {
           "name": "Name",
           "phone": "Phone",
-          "email": "Email"
+          "email": "Email",
+          "company": "Company"
         }
       },
       "scheduleSend": {

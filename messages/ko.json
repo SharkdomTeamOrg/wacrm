@@ -161,6 +161,7 @@
       "deleteChatDesc": "{name}님과의 대화 및 메시지를 wacrm에서 삭제할까요? 되돌릴 수 없습니다.",
       "deleteChatFailed": "채팅을 삭제하지 못했습니다.",
       "chatDeleted": "채팅을 삭제했습니다",
+      "deleteChat": "채팅 삭제",
       "cancel": "취소"
     },
     "conversationList": {
@@ -856,7 +857,8 @@
         "fieldMap": {
           "name": "이름",
           "phone": "전화번호",
-          "email": "이메일"
+          "email": "이메일",
+          "company": "회사"
         }
       },
       "scheduleSend": {

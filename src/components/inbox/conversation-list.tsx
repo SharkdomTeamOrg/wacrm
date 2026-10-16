@@ -9,7 +9,14 @@ import {
 } from "@/lib/inbox/conversations";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationStatus, Tag } from "@/types";
-import { Search, ChevronDown, X, SquarePen } from "lucide-react";
+import { Search, ChevronDown, X, SquarePen, MoreVertical, Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import {
+  DropdownMenu as RowMenu,
+  DropdownMenuContent as RowMenuContent,
+  DropdownMenuItem as RowMenuItem,
+  DropdownMenuTrigger as RowMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
 import { formatDistanceToNow } from "date-fns";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
@@ -40,6 +47,9 @@ interface ConversationListProps {
   numberId?: string | null;
   /** Opens Inbox → New message (start a thread with a template). */
   onNewConversation?: () => void;
+  /** Row menu actions (migration 046). */
+  onArchive?: (conversation: Conversation, archived: boolean) => void;
+  onDelete?: (conversation: Conversation) => void;
 }
 
 const STATUS_COLORS: Record<ConversationStatus, string> = {
@@ -50,7 +60,7 @@ const STATUS_COLORS: Record<ConversationStatus, string> = {
 
 
 
-type InboxFilter = ConversationStatus | "all" | "unread";
+type InboxFilter = ConversationStatus | "all" | "unread" | "archived";
 
 export function ConversationList({
   activeConversationId,
@@ -60,7 +70,14 @@ export function ConversationList({
   resyncToken = 0,
   numberId,
   onNewConversation,
+  onArchive,
+  onDelete,
 }: ConversationListProps) {
+  // Delete chat is admin/owner only (RLS enforces it too).
+  const {
+    canManageMembers: canDeleteChats,
+    canSendMessages: canManageChats,
+  } = useAuth();
   const t = useTranslations("Inbox.conversationList");
   
   const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = useMemo(() => [
@@ -69,6 +86,7 @@ export function ConversationList({
     { label: t("filterOpen"), value: "open" },
     { label: t("filterPending"), value: "pending" },
     { label: t("filterClosed"), value: "closed" },
+    { label: t("filterArchived"), value: "archived" },
   ], [t]);
 
   // Flag per thread only matters when the account has several numbers
@@ -185,9 +203,15 @@ export function ConversationList({
       result = result.filter((c) => c.whatsapp_config_id === numberId);
     }
 
+    // Archived chats only appear under the "Archived" filter.
+    result =
+      filter === "archived"
+        ? result.filter((c) => !!c.archived_at)
+        : result.filter((c) => !c.archived_at);
+
     if (filter === "unread") {
       result = result.filter((c) => c.unread_count > 0);
-    } else if (filter !== "all") {
+    } else if (filter !== "all" && filter !== "archived") {
       result = result.filter((c) => c.status === filter);
     }
 
@@ -452,6 +476,8 @@ export function ConversationList({
                 onSelect={handleSelect}
                 t={t}
                 numberBadge={numberBadges.get(conv.whatsapp_config_id ?? "")}
+                onArchive={canManageChats ? onArchive : undefined}
+                onDelete={canDeleteChats ? onDelete : undefined}
               />
             ))}
           </div>
@@ -468,6 +494,9 @@ interface ConversationItemProps {
   t: ReturnType<typeof useTranslations>;
   /** Flag + name of the thread's number, when the account has several. */
   numberBadge?: { flag: string; name: string };
+  onArchive?: (conversation: Conversation, archived: boolean) => void;
+  /** Undefined for roles that may not delete chats. */
+  onDelete?: (conversation: Conversation) => void;
 }
 
 function ConversationItem({
@@ -476,7 +505,12 @@ function ConversationItem({
   onSelect,
   t,
   numberBadge,
+  onArchive,
+  onDelete,
 }: ConversationItemProps) {
+  // Row menu: the ⋮ button on hover, or right-click anywhere on the row.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const hasMenu = !!(onArchive || onDelete);
   const contact = conversation.contact;
   const displayName = contact?.name || contact?.phone || t("unknown");
   const initials = displayName.charAt(0).toUpperCase();
@@ -492,59 +526,101 @@ function ConversationItem({
     : "";
 
   return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50",
-        isActive && "border-l-2 border-primary bg-muted/70"
-      )}
+    <div
+      className="group relative"
+      onContextMenu={(e) => {
+        if (!hasMenu) return;
+        e.preventDefault();
+        setMenuOpen(true);
+      }}
     >
-      {/* Avatar */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
-        {contact?.avatar_url ? (
-          <img
-            src={contact.avatar_url}
-            alt={displayName}
-            className="h-10 w-10 rounded-full object-cover"
-          />
-        ) : (
-          initials
+      <button
+        onClick={handleClick}
+        className={cn(
+          "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50",
+          isActive && "border-l-2 border-primary bg-muted/70"
         )}
-      </div>
-
-      {/* Content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-foreground">
-            {numberBadge && (
-              <span className="mr-1" title={numberBadge.name} aria-label={numberBadge.name}>
-                {numberBadge.flag}
-              </span>
-            )}
-            {displayName}
-          </span>
-          <span className="shrink-0 text-[10px] text-muted-foreground">{timeAgo}</span>
-        </div>
-        <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-muted-foreground">
-            {conversation.last_message_text || t("noMessagesYet")}
-          </p>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {conversation.unread_count > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                {conversation.unread_count}
-              </span>
-            )}
-            <span
-              className={cn(
-                "h-2 w-2 rounded-full",
-                STATUS_COLORS[conversation.status]
-              )}
-              title={conversation.status}
+      >
+        {/* Avatar */}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
+          {contact?.avatar_url ? (
+            <img
+              src={contact.avatar_url}
+              alt={displayName}
+              className="h-10 w-10 rounded-full object-cover"
             />
+          ) : (
+            initials
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-sm font-medium text-foreground">
+              {numberBadge && (
+                <span className="mr-1" title={numberBadge.name} aria-label={numberBadge.name}>
+                  {numberBadge.flag}
+                </span>
+              )}
+              {displayName}
+            </span>
+            <span className="shrink-0 text-[10px] text-muted-foreground">{timeAgo}</span>
+          </div>
+          <div className="mt-0.5 flex items-center justify-between gap-2">
+            <p className="truncate text-xs text-muted-foreground">
+              {conversation.last_message_text || t("noMessagesYet")}
+            </p>
+            <div className="flex shrink-0 items-center gap-1.5">
+              {conversation.unread_count > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {conversation.unread_count}
+                </span>
+              )}
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  STATUS_COLORS[conversation.status]
+                )}
+                title={conversation.status}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </button>
+      </button>
+
+      {hasMenu && (
+        <RowMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <RowMenuTrigger
+            aria-label={t("chatOptions")}
+            className={cn(
+              "absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-md bg-card text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground",
+              "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
+              menuOpen && "opacity-100",
+            )}
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </RowMenuTrigger>
+          <RowMenuContent align="end" className="min-w-40">
+            {onArchive && (
+              <RowMenuItem onClick={() => onArchive(conversation, !conversation.archived_at)}>
+                {conversation.archived_at ? (
+                  <ArchiveRestore className="h-4 w-4" />
+                ) : (
+                  <Archive className="h-4 w-4" />
+                )}
+                {conversation.archived_at ? t("unarchiveChat") : t("archiveChat")}
+              </RowMenuItem>
+            )}
+            {onDelete && (
+              <RowMenuItem variant="destructive" onClick={() => onDelete(conversation)}>
+                <Trash2 className="h-4 w-4" />
+                {t("deleteChat")}
+              </RowMenuItem>
+            )}
+          </RowMenuContent>
+        </RowMenu>
+      )}
+    </div>
   );
 }

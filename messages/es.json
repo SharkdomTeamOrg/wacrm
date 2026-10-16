@@ -153,7 +153,15 @@
       "failed": "No se pudo enviar la plantilla: {reason}"
     },
     "page": {
-      "whatsappNotConnected": "WhatsApp® no está conectado. Ve a Configuración para conectar tu cuenta."
+      "whatsappNotConnected": "WhatsApp® no está conectado. Ve a Configuración para conectar tu cuenta.",
+      "archiveFailed": "No se pudo actualizar el chat.",
+      "chatArchived": "Chat archivado",
+      "chatUnarchived": "Chat desarchivado",
+      "deleteChatTitle": "¿Eliminar chat?",
+      "deleteChatDesc": "¿Eliminar de wacrm la conversación con {name} y sus mensajes? Esta acción no se puede deshacer.",
+      "deleteChatFailed": "No se pudo eliminar el chat.",
+      "chatDeleted": "Chat eliminado",
+      "cancel": "Cancelar"
     },
     "conversationList": {
       "newMessage": "Nuevo mensaje",
@@ -169,7 +177,12 @@
       "clearAll": "Limpiar todo",
       "noConversations": "No se encontraron conversaciones",
       "noMessagesYet": "Aún no hay mensajes",
-      "unknown": "Desconocido"
+      "unknown": "Desconocido",
+      "filterArchived": "Archivados",
+      "archiveChat": "Archivar chat",
+      "unarchiveChat": "Desarchivar chat",
+      "deleteChat": "Eliminar chat",
+      "chatOptions": "Opciones del chat"
     },
     "messageThread": {
       "backToConversations": "Volver a las conversaciones",
@@ -200,7 +213,13 @@
       "sendTemplateFailed": "Error al enviar la plantilla: {reason}",
       "waitForSending": "Espera a que el mensaje termine de enviarse",
       "reactionFailed": "Error en la reacción: {reason}",
-      "assignmentUpdateFailed": "Error al actualizar la asignación"
+      "assignmentUpdateFailed": "Error al actualizar la asignación",
+      "deleteMessageTitle": "¿Eliminar mensaje?",
+      "deleteMessageDescription": "El mensaje se ocultará de la bandeja de wacrm de tu equipo. El cliente seguirá viéndolo en WhatsApp.",
+      "deleteForMe": "Eliminar para mí",
+      "deleteMessageFailed": "No se pudo eliminar el mensaje.",
+      "messageDeleted": "Mensaje eliminado",
+      "cancel": "Cancelar"
     },
     "sessionTimer": {
       "expired": "Expirada",

@@ -182,6 +182,9 @@ export interface Conversation {
   /** Business number this thread is on (migration 044). NULL only for
    *  threads whose number was removed — replies then use the default. */
   whatsapp_config_id?: string | null;
+  /** Archived chats leave the main list (migration 046); a new customer
+   *  message clears it. */
+  archived_at?: string | null;
   contact?: Contact;
   /**
    * AI auto-reply state for this thread (migration 029 + 033):
@@ -235,6 +238,8 @@ export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
 export interface Message {
   id: string;
   conversation_id: string;
+  /** "Delete for me" (migration 046): hidden from the inbox, row kept. */
+  deleted_at?: string | null;
   sender_type: SenderType;
   sender_id?: string;
   content_type: ContentType;

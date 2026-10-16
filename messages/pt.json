@@ -153,7 +153,15 @@
       "failed": "Falha ao enviar o modelo: {reason}"
     },
     "page": {
-      "whatsappNotConnected": "O WhatsApp® não está conectado. Vá em Configurações para conectar sua conta."
+      "whatsappNotConnected": "O WhatsApp® não está conectado. Vá em Configurações para conectar sua conta.",
+      "archiveFailed": "Não foi possível atualizar a conversa.",
+      "chatArchived": "Conversa arquivada",
+      "chatUnarchived": "Conversa desarquivada",
+      "deleteChatTitle": "Excluir conversa?",
+      "deleteChatDesc": "Excluir do wacrm a conversa com {name} e suas mensagens? Esta ação não pode ser desfeita.",
+      "deleteChatFailed": "Não foi possível excluir a conversa.",
+      "chatDeleted": "Conversa excluída",
+      "cancel": "Cancelar"
     },
     "conversationList": {
       "newMessage": "Nova mensagem",
@@ -169,7 +177,12 @@
       "clearAll": "Limpar tudo",
       "noConversations": "Nenhuma conversa encontrada",
       "noMessagesYet": "Nenhuma mensagem ainda",
-      "unknown": "Desconhecido"
+      "unknown": "Desconhecido",
+      "filterArchived": "Arquivadas",
+      "archiveChat": "Arquivar conversa",
+      "unarchiveChat": "Desarquivar conversa",
+      "deleteChat": "Excluir conversa",
+      "chatOptions": "Opções da conversa"
     },
     "messageThread": {
       "backToConversations": "Voltar às conversas",
@@ -200,7 +213,13 @@
       "sendTemplateFailed": "Falha ao enviar o modelo: {reason}",
       "waitForSending": "Aguarde a mensagem terminar de ser enviada",
       "reactionFailed": "Falha na reação: {reason}",
-      "assignmentUpdateFailed": "Falha ao atualizar a atribuição"
+      "assignmentUpdateFailed": "Falha ao atualizar a atribuição",
+      "deleteMessageTitle": "Excluir mensagem?",
+      "deleteMessageDescription": "A mensagem será ocultada da caixa de entrada wacrm da equipe. O cliente continuará vendo-a no WhatsApp.",
+      "deleteForMe": "Excluir para mim",
+      "deleteMessageFailed": "Não foi possível excluir a mensagem.",
+      "messageDeleted": "Mensagem excluída",
+      "cancel": "Cancelar"
     },
     "sessionTimer": {
       "expired": "Expirada",

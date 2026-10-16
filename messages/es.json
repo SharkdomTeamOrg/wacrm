@@ -161,6 +161,7 @@
       "deleteChatDesc": "¿Eliminar de wacrm la conversación con {name} y sus mensajes? Esta acción no se puede deshacer.",
       "deleteChatFailed": "No se pudo eliminar el chat.",
       "chatDeleted": "Chat eliminado",
+      "deleteChat": "Eliminar chat",
       "cancel": "Cancelar"
     },
     "conversationList": {

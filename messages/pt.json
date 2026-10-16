@@ -161,6 +161,7 @@
       "deleteChatDesc": "Excluir do wacrm a conversa com {name} e suas mensagens? Esta ação não pode ser desfeita.",
       "deleteChatFailed": "Não foi possível excluir a conversa.",
       "chatDeleted": "Conversa excluída",
+      "deleteChat": "Excluir conversa",
       "cancel": "Cancelar"
     },
     "conversationList": {

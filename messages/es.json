@@ -144,6 +144,7 @@
   },
   "Inbox": {
     "newConversation": {
+      "loadFailed": "No se pudieron cargar los contactos. Revisa tu conexión e inténtalo de nuevo.",
       "title": "Nuevo mensaje",
       "description": "Elige un contacto y luego una plantilla: WhatsApp solo permite que una empresa inicie una conversación con una plantilla aprobada.",
       "searchPlaceholder": "Buscar contactos por nombre o teléfono",

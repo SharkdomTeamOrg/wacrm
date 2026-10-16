@@ -44,6 +44,7 @@ export function NewConversationDialog({
   const [query, setQuery] = useState("");
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [contact, setContact] = useState<ContactRow | null>(null);
 
   useEffect(() => {
@@ -55,9 +56,11 @@ export function NewConversationDialog({
       let q = createClient().from("contacts").select("id, name, phone").order("name").limit(30);
       const term = query.trim().replace(/[%_,()]/g, "");
       if (term) q = q.or(`name.ilike.%${term}%,phone.ilike.%${term}%`);
-      const { data } = await q;
+      const { data, error } = await q;
       if (!cancelled) {
-        setContacts((data as ContactRow[]) ?? []);
+        // A failed load must not read as "no contacts" — say it failed.
+        setLoadFailed(!!error);
+        setContacts(error ? [] : ((data as ContactRow[]) ?? []));
         setLoading(false);
       }
     }, 250);
@@ -109,6 +112,8 @@ export function NewConversationDialog({
               <div className="flex justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
+            ) : loadFailed ? (
+              <p className="py-6 text-center text-sm text-red-400">{t("loadFailed")}</p>
             ) : contacts.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{t("noContacts")}</p>
             ) : (

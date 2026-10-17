@@ -57,23 +57,17 @@ describe('claimBroadcastDelivery', () => {
       claimDb([{ id: 'bc-1' }], calls),
       'acct-1',
       'bc-1',
-      new Date('2026-08-11T12:00:00Z'),
+      new Date('2026-08-11T12:00:00Z')
     );
 
     expect(ok).toBe(true);
     expect(calls[0].filters).toEqual({ id: 'bc-1', account_id: 'acct-1' });
-    expect(calls[0].update.delivery_locked_at).toBe(
-      '2026-08-11T12:00:00.000Z',
-    );
+    expect(calls[0].update.delivery_locked_at).toBe('2026-08-11T12:00:00.000Z');
   });
 
   it('refuses when another pass already holds the lock', async () => {
     // The UPDATE's WHERE didn't match — someone else got there first.
-    const ok = await claimBroadcastDelivery(
-      claimDb([], []),
-      'acct-1',
-      'bc-1',
-    );
+    const ok = await claimBroadcastDelivery(claimDb([], []), 'acct-1', 'bc-1');
     expect(ok).toBe(false);
   });
 
@@ -83,12 +77,12 @@ describe('claimBroadcastDelivery', () => {
       claimDb([{ id: 'bc-1' }], calls),
       'acct-1',
       'bc-1',
-      new Date('2026-08-11T12:00:00Z'),
+      new Date('2026-08-11T12:00:00Z')
     );
     // 30 minutes before "now" — a pass whose process died is recoverable
     // without touching the database by hand.
     expect(calls[0].or).toBe(
-      'delivery_locked_at.is.null,delivery_locked_at.lt.2026-08-11T11:30:00.000Z',
+      'delivery_locked_at.is.null,delivery_locked_at.lt.2026-08-11T11:30:00.000Z'
     );
   });
 
@@ -171,21 +165,22 @@ function planDb(fx: PlanFixture, writes: PlanWrites = {}): SupabaseClient {
 
 const BROADCAST = {
   id: 'bc-1',
+  user_id: 'user-1',
   template_name: 'order_update',
   template_language: 'en_US',
 };
 
-const CONFIG = { phone_number_id: 'pn-1', access_token: 'tok' };
+const CONFIG = { id: 'cfg-1', phone_number_id: 'pn-1', access_token: 'tok' };
 
 function recipient(
   id: string,
   phone: string | null,
-  params: unknown = ['A123'],
+  params: unknown = ['A123']
 ) {
   return {
     id,
     template_params: params,
-    contact: phone ? { phone } : null,
+    contact: phone ? { id: `contact-${id}`, phone } : null,
   };
 }
 
@@ -202,11 +197,11 @@ describe('planBroadcastResume', () => {
             recipient('r2', '+15559876543', ['B456', 'Monday']),
           ],
         },
-        writes,
+        writes
       ),
       'acct-1',
       'bc-1',
-      'pending',
+      'pending'
     );
 
     expect(writes.statusFilter).toEqual(['pending']);
@@ -216,11 +211,13 @@ describe('planBroadcastResume', () => {
     expect(plan.planned).toEqual([
       {
         recipientRowId: 'r1',
+        contactId: 'contact-r1',
         phone: '15551234567',
         params: ['A123', 'Friday'],
       },
       {
         recipientRowId: 'r2',
+        contactId: 'contact-r2',
         phone: '15559876543',
         params: ['B456', 'Monday'],
       },
@@ -239,11 +236,11 @@ describe('planBroadcastResume', () => {
           config: CONFIG,
           recipients: [recipient('r1', '+15551234567')],
         },
-        failedWrites,
+        failedWrites
       ),
       'acct-1',
       'bc-1',
-      'failed',
+      'failed'
     );
     expect(failedWrites.statusFilter).toEqual(['failed']);
 
@@ -255,11 +252,11 @@ describe('planBroadcastResume', () => {
           config: CONFIG,
           recipients: [recipient('r1', '+15551234567')],
         },
-        allWrites,
+        allWrites
       ),
       'acct-1',
       'bc-1',
-      'all',
+      'all'
     );
     expect(allWrites.statusFilter).toEqual(['pending', 'failed']);
   });
@@ -277,7 +274,7 @@ describe('planBroadcastResume', () => {
       }),
       'acct-1',
       'bc-1',
-      'pending',
+      'pending'
     );
     expect(plan.planned.map((p) => p.params)).toEqual([[], []]);
   });
@@ -295,11 +292,11 @@ describe('planBroadcastResume', () => {
             recipient('r3', 'nonsense'),
           ],
         },
-        writes,
+        writes
       ),
       'acct-1',
       'bc-1',
-      'pending',
+      'pending'
     );
 
     // Left 'pending', these would keep the broadcast in 'sending'
@@ -312,13 +309,13 @@ describe('planBroadcastResume', () => {
 
   it('caps one pass and reports the leftover', async () => {
     const many = Array.from({ length: RESUME_MAX_PER_REQUEST + 25 }, (_, i) =>
-      recipient(`r${i}`, '+1555000' + String(i).padStart(4, '0')),
+      recipient(`r${i}`, '+1555000' + String(i).padStart(4, '0'))
     );
     const { plan, remaining } = await planBroadcastResume(
       planDb({ broadcast: BROADCAST, config: CONFIG, recipients: many }),
       'acct-1',
       'bc-1',
-      'pending',
+      'pending'
     );
     expect(plan.planned).toHaveLength(RESUME_MAX_PER_REQUEST);
     // Surfaced to the caller rather than silently dropped.
@@ -331,8 +328,8 @@ describe('planBroadcastResume', () => {
         planDb({ broadcast: null }),
         'acct-1',
         'bc-1',
-        'pending',
-      ),
+        'pending'
+      )
     ).rejects.toMatchObject({ status: 404 });
   });
 
@@ -342,8 +339,8 @@ describe('planBroadcastResume', () => {
         planDb({ broadcast: BROADCAST, config: CONFIG, recipients: [] }),
         'acct-1',
         'bc-1',
-        'failed',
-      ),
+        'failed'
+      )
     ).rejects.toBeInstanceOf(BroadcastError);
   });
 
@@ -366,7 +363,7 @@ describe('planBroadcastResume', () => {
       }),
       'acct-1',
       'bc-1',
-      'pending',
+      'pending'
     );
     expect(plan.templateRow?.language).toBe('en');
   });

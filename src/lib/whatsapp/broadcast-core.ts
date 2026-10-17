@@ -30,6 +30,7 @@ import {
 import { resolveTemplateRow } from '@/lib/whatsapp/template-body';
 import type { MessageTemplate } from '@/types';
 import { findOrCreateContact } from '@/lib/api/v1/contacts';
+import { persistBroadcastMessage } from '@/lib/whatsapp/persist-broadcast-message';
 
 /** Thrown by createBroadcast on a caller-visible failure; route maps it. */
 export class BroadcastError extends Error {
@@ -61,12 +62,16 @@ export interface CreateBroadcastParams {
 
 interface PlannedRecipient {
   recipientRowId: string;
+  contactId: string;
   phone: string;
   params: string[];
 }
 
 export interface BroadcastPlan {
   broadcastId: string;
+  accountId: string;
+  auditUserId: string;
+  whatsappConfigId: string;
   templateName: string;
   templateLanguage: string;
   phoneNumberId: string;
@@ -113,7 +118,9 @@ export async function createBroadcast(
 
   // Config (fail fast + provides the audit trail owner already resolved
   // by the caller). Meta send needs phone_number_id + decrypted token.
-  const config = await getWhatsAppConfig<WhatsAppConfigRow>(db, accountId, { configId: params.whatsappConfigId });
+  const config = await getWhatsAppConfig<WhatsAppConfigRow>(db, accountId, {
+    configId: params.whatsappConfigId,
+  });
   if (!config) {
     throw new BroadcastError(
       'whatsapp_not_configured',
@@ -226,7 +233,10 @@ export async function createBroadcast(
   // The RPC predates multi-number; stamp the sending number afterwards so
   // a later resume sends from the same one.
   if (config.id) {
-    await db.from('broadcasts').update({ whatsapp_config_id: config.id }).eq('id', broadcastId);
+    await db
+      .from('broadcasts')
+      .update({ whatsapp_config_id: config.id })
+      .eq('id', broadcastId);
   }
 
   // Pair each inserted recipient row back to its phone/params by
@@ -235,12 +245,20 @@ export async function createBroadcast(
   const planned: PlannedRecipient[] = createdRows.map(
     (row: { recipient_id: string; contact_id: string }) => {
       const r = byContact.get(row.contact_id)!;
-      return { recipientRowId: row.recipient_id, phone: r.phone, params: r.params };
+      return {
+        recipientRowId: row.recipient_id,
+        contactId: row.contact_id,
+        phone: r.phone,
+        params: r.params,
+      };
     }
   );
 
   return {
     broadcastId,
+    accountId,
+    auditUserId,
+    whatsappConfigId: config.id,
     templateName,
     templateLanguage: resolvedTemplate.language,
     phoneNumberId: config.phone_number_id,
@@ -288,7 +306,8 @@ export async function deliverBroadcast(
         lastError = null;
         break;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         lastError = message;
         // Only a "recipient not allowed" error is worth another variant.
         if (!isRecipientNotAllowedError(message)) break;
@@ -296,13 +315,36 @@ export async function deliverBroadcast(
     }
 
     if (sentMessageId) {
+      let inboxError: string | null = null;
+      try {
+        await persistBroadcastMessage(db, {
+          accountId: plan.accountId,
+          userId: plan.auditUserId,
+          contactId: recipient.contactId,
+          whatsappConfigId: plan.whatsappConfigId,
+          templateName: plan.templateName,
+          templateRow: plan.templateRow,
+          templateParams: recipient.params,
+          whatsappMessageId: sentMessageId,
+        });
+      } catch (error) {
+        inboxError =
+          error instanceof Error
+            ? error.message
+            : 'Unknown inbox persistence error';
+        console.error(
+          `[broadcast-core] Message was sent to ${recipient.phone} but inbox persistence failed:`,
+          inboxError
+        );
+      }
+
       await db
         .from('broadcast_recipients')
         .update({
           status: 'sent',
           sent_at: new Date().toISOString(),
           whatsapp_message_id: sentMessageId,
-          error_message: null,
+          error_message: inboxError,
         })
         .eq('id', recipient.recipientRowId);
     } else {

@@ -6,6 +6,7 @@ import { sendTemplateMessage } from '@/lib/whatsapp/meta-api'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import type { SendTimeParams } from '@/lib/whatsapp/template-send-builder'
 import { resolveTemplateRow } from '@/lib/whatsapp/template-body'
+import { persistBroadcastMessage } from '@/lib/whatsapp/persist-broadcast-message'
 import {
   sanitizePhoneForMeta,
   isValidE164,
@@ -23,6 +24,7 @@ interface BroadcastResult {
   status: 'sent' | 'failed'
   whatsapp_message_id?: string
   error?: string
+  inbox_error?: string
 }
 
 /**
@@ -49,6 +51,7 @@ interface BroadcastResult {
  */
 interface NewRecipient {
   phone: string
+  contact_id?: string
   /** Body variable values, one per {{N}}. Legacy field. */
   params?: string[]
   /**
@@ -66,14 +69,9 @@ export async function POST(request: Request) {
     // explicit that running broadcasts is a write operation and that
     // viewers are read-only.
     //
-    // This endpoint writes NOTHING to the database: it reads the config
-    // and template, then calls Meta directly. So unlike the rest of the
-    // app there was no RLS policy backstopping a missing role check —
-    // resolving `account_id` straight off the profile (which only needs
-    // 'viewer') was the ONLY gate, and it let a viewer blast a template
-    // to arbitrary phone numbers from the account's WhatsApp number.
-    // Nothing about that is recoverable after the fact, so the check has
-    // to happen here.
+    // Sending and persisting broadcast messages both require the 'agent'
+    // role. RLS alone is insufficient because Meta delivery cannot be
+    // rolled back if the later database write is denied.
     const { supabase, accountId, userId } = await requireRole('agent')
 
     // Per-user broadcast budget. Note: this limits how often a user
@@ -124,7 +122,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const config = await getWhatsAppConfig<WhatsAppConfigRow>(supabase, accountId, { configId: whatsapp_config_id })
+    const config = await getWhatsAppConfig<WhatsAppConfigRow>(
+      supabase,
+      accountId,
+      { configId: whatsapp_config_id }
+    )
 
     if (!config) {
       return NextResponse.json(
@@ -147,7 +149,7 @@ export async function POST(request: Request) {
       supabase,
       accountId,
       template_name,
-      template_language,
+      template_language
     )
     if (resolvedTemplate.malformed) {
       return NextResponse.json(
@@ -155,16 +157,53 @@ export async function POST(request: Request) {
           error:
             'Template row is malformed locally — run "Sync from Meta" in Settings to repair it before broadcasting.',
         },
-        { status: 500 },
+        { status: 500 }
       )
     }
     const templateRow = resolvedTemplate.row
+
+    const contactIds = [
+      ...new Set(
+        recipients
+          .map((recipient) => recipient.contact_id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      ),
+    ]
+    const contactsById = new Set<string>()
+    if (contactIds.length > 0) {
+      const { data: contacts, error: contactsError } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('account_id', accountId)
+        .in('id', contactIds)
+      if (contactsError) {
+        console.error(
+          '[broadcast] Failed to resolve recipient contacts:',
+          contactsError.message
+        )
+        return NextResponse.json(
+          { error: 'Failed to resolve broadcast contacts' },
+          { status: 500 }
+        )
+      }
+      for (const contact of contacts ?? []) contactsById.add(contact.id)
+    }
 
     const results: BroadcastResult[] = []
     let sentCount = 0
     let failedCount = 0
 
     for (const recipient of recipients) {
+      if (recipient.contact_id && !contactsById.has(recipient.contact_id)) {
+        results.push({
+          phone: recipient.phone,
+          status: 'failed',
+          error: 'Contact not found in this account',
+        })
+        failedCount++
+        continue
+      }
+
       const sanitized = sanitizePhoneForMeta(recipient.phone)
 
       if (!isValidE164(sanitized)) {
@@ -211,10 +250,36 @@ export async function POST(request: Request) {
       }
 
       if (sentMessageId) {
+        let inboxError: string | undefined
+        if (recipient.contact_id) {
+          try {
+            await persistBroadcastMessage(supabase, {
+              accountId,
+              userId,
+              contactId: recipient.contact_id,
+              whatsappConfigId: config.id,
+              templateName: template_name,
+              templateRow,
+              templateParams: recipient.params ?? [],
+              whatsappMessageId: sentMessageId,
+            })
+          } catch (error) {
+            inboxError =
+              error instanceof Error
+                ? error.message
+                : 'Unknown inbox persistence error'
+            console.error(
+              `[broadcast] Message was sent to ${recipient.phone} but inbox persistence failed:`,
+              inboxError
+            )
+          }
+        }
+
         results.push({
           phone: recipient.phone,
           status: 'sent',
           whatsapp_message_id: sentMessageId,
+          ...(inboxError ? { inbox_error: inboxError } : {}),
         })
         sentCount++
       } else {

@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { BATCH_SEND_ATTEMPTS, batchRetryDelayMs } from '@/lib/broadcast-retry';
 import { normalizeKey } from '@/lib/contacts/dedupe';
 import { Contact, MessageTemplate } from '@/types';
+import { toast } from 'sonner';
 import {
   getPhoneCountryPrefix,
   type PhoneCountryFilterId,
@@ -88,6 +89,7 @@ interface BroadcastApiResult {
   status: 'sent' | 'failed';
   whatsapp_message_id?: string;
   error?: string;
+  inbox_error?: string;
 }
 
 /** contactId → (customFieldId → value). */
@@ -530,6 +532,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
 
       let failedCount = 0;
       const totalRecipients = recipients.length;
+      let inboxSyncFailures = 0;
 
       // Media-header templates (image/video/document) require a media
       // URL on every send. Collected in the personalize step and applied
@@ -551,6 +554,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
           .filter((r) => r.contact?.phone)
           .map((r) => ({
             phone: r.contact!.phone as string,
+            contact_id: r.contact!.id,
             // Read back off the row rather than re-resolved, so this
             // pass and any later resume send identical params.
             params: Array.isArray(r.template_params) ? r.template_params : [],
@@ -617,9 +621,10 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
                   status: 'sent',
                   sent_at: new Date().toISOString(),
                   whatsapp_message_id: result.whatsapp_message_id ?? null,
-                  error_message: null,
+                  error_message: result.inbox_error ?? null,
                 })
                 .eq('id', recipient.id);
+              if (result.inbox_error) inboxSyncFailures++;
             } else {
               failedCount++;
               await supabase
@@ -663,6 +668,12 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         .from('broadcasts')
         .update({ status: finalStatus })
         .eq('id', broadcast.id);
+
+      if (inboxSyncFailures > 0) {
+        toast.error(
+          `${inboxSyncFailures} message${inboxSyncFailures === 1 ? '' : 's'} sent successfully but could not be added to the Inbox. Check the recipient error details.`
+        );
+      }
 
       setProgress(100);
       return broadcast.id;

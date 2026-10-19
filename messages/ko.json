@@ -734,6 +734,57 @@
       "unknown": "알 수 없음"
     },
     "detail": {
+      "failures": {
+        "notRetriedNow": "{count}건은 실패 항목 재시도에서 제외됩니다 — Meta 마케팅 한도(24시간 후 자동 재시도), 마케팅 수신 거부 또는 Meta 실험. 지금 다시 보내면 다시 거부됩니다.",
+        "title": "메시지 실패 이유",
+        "subtitle": "Meta의 사유별로 실패를 묶고 각각의 해결 방법을 안내합니다.",
+        "showThese": "이 항목 보기",
+        "showAll": "전체 보기",
+        "autoRetry": "{count}개 메시지가 자동 재시도 예약됨 · 다음 {time}",
+        "codes": "Meta 오류 코드: {codes}",
+        "reasons": {
+          "marketingLimit": {
+            "title": "이 사람들에 대한 Meta 마케팅 한도",
+            "advice": "Meta는 한 사람이 모든 비즈니스로부터 받는 마케팅 메시지 수를 제한합니다. Meta는 최소 24시간 기다릴 것을 권장하며, 설정이 켜져 있으면 wacrm이 한 번 자동 재시도합니다. 유틸리티 템플릿은 제한되지 않습니다."
+          },
+          "userStoppedMarketing": {
+            "title": "마케팅 메시지 수신을 끔",
+            "advice": "이 사람들은 WhatsApp에서 귀하의 비즈니스 마케팅 메시지를 받지 않기로 했습니다. 마케팅을 다시 보내지 마세요. 유틸리티 메시지는 받을 수 있고 답장도 가능합니다."
+          },
+          "undeliverable": {
+            "title": "전달할 수 없음",
+            "advice": "번호가 WhatsApp에 없거나, 오래된 앱을 쓰거나, 최신 약관에 동의하지 않았을 수 있습니다. 번호를 확인하세요. 재시도는 대개 도움이 되지 않습니다."
+          },
+          "experiment": {
+            "title": "Meta 실험으로 보류됨",
+            "advice": "Meta가 실험의 일부로 일부 사용자에게 마케팅 메시지를 보류하고 있습니다. 조치할 것이 없습니다."
+          },
+          "templateProblem": {
+            "title": "템플릿 문제",
+            "advice": "변수가 맞지 않거나 템플릿이 일시 중지, 비활성화되었거나 이 언어로 승인되지 않았습니다. 설정 → 템플릿에서 확인한 뒤 재시도하세요."
+          },
+          "rateLimit": {
+            "title": "너무 빠르게 전송됨",
+            "advice": "Meta가 전송을 제한했습니다. 몇 분 후 실패 항목 재시도를 사용하세요."
+          },
+          "invalidNumber": {
+            "title": "잘못된 전화번호",
+            "advice": "번호 형식이 잘못되었거나 국가 코드(예: +91…)가 없습니다. 연락처를 수정한 뒤 재시도하세요."
+          },
+          "authExpired": {
+            "title": "WhatsApp 연결 만료",
+            "advice": "액세스 토큰이 잘못되었거나 만료되었습니다. 설정 → WhatsApp에서 업데이트한 뒤 실패 항목 재시도를 사용하세요."
+          },
+          "accountIssue": {
+            "title": "WhatsApp 계정 문제",
+            "advice": "Meta가 계정 문제(잠금, 결제 또는 인증서)를 보고했습니다. WhatsApp Manager를 확인하세요."
+          },
+          "other": {
+            "title": "기타 오류",
+            "advice": "Meta의 정확한 메시지는 아래 수신자 표의 오류 열에 있습니다."
+          }
+        }
+      },
       "backToBroadcasts": "브로드캐스트로 돌아가기",
       "notFound": "브로드캐스트를 찾을 수 없습니다",
       "template": "템플릿: {name}",

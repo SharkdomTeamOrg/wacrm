@@ -734,6 +734,57 @@
       "unknown": "Unknown"
     },
     "detail": {
+      "failures": {
+        "notRetriedNow": "{count, plural, =1 {1 failure is} other {# failures are}} excluded from Retry failed — Meta's marketing limit (auto-retried after 24h), turned-off marketing or a Meta experiment. Resending now would be refused again.",
+        "title": "Why messages failed",
+        "subtitle": "Failures grouped by Meta's reason, with what to do about each.",
+        "showThese": "Show these",
+        "showAll": "Show all",
+        "autoRetry": "{count, plural, =1 {1 message is} other {# messages are}} scheduled to auto-retry · next at {time}",
+        "codes": "Meta error codes: {codes}",
+        "reasons": {
+          "marketingLimit": {
+            "title": "Meta's marketing limit for these people",
+            "advice": "Meta caps how many marketing messages a person receives from all businesses. Meta advises waiting at least 24 hours — wacrm auto-retries once if that setting is on. Utility templates aren't capped."
+          },
+          "userStoppedMarketing": {
+            "title": "They turned off marketing messages from you",
+            "advice": "These people chose to stop marketing messages from your business in WhatsApp. Don't resend marketing; they can still receive utility messages and reply to you."
+          },
+          "undeliverable": {
+            "title": "Couldn't be delivered",
+            "advice": "The number may not be on WhatsApp, may use an old app version, or hasn't accepted WhatsApp's latest terms. Check the numbers; retrying usually won't help."
+          },
+          "experiment": {
+            "title": "Held back by a Meta experiment",
+            "advice": "Meta is withholding marketing messages from some users as part of an experiment. Nothing to fix on your side."
+          },
+          "templateProblem": {
+            "title": "Template problem",
+            "advice": "The template's variables didn't match, or the template is paused, disabled or not approved in this language. Check it in Settings → Templates, then retry."
+          },
+          "rateLimit": {
+            "title": "Sent too fast",
+            "advice": "Meta throttled the sends. Use Retry failed after a few minutes."
+          },
+          "invalidNumber": {
+            "title": "Invalid phone number",
+            "advice": "The number is malformed or missing its country code (e.g. +91…). Fix the contact, then retry."
+          },
+          "authExpired": {
+            "title": "WhatsApp connection expired",
+            "advice": "The access token is invalid or expired. Update it in Settings → WhatsApp, then use Retry failed."
+          },
+          "accountIssue": {
+            "title": "WhatsApp account issue",
+            "advice": "Meta reports an account problem (locked, payment, or certificate). Check WhatsApp Manager."
+          },
+          "other": {
+            "title": "Other errors",
+            "advice": "Meta's exact message is in the Error column of the recipients table below."
+          }
+        }
+      },
       "backToBroadcasts": "Back to Broadcasts",
       "notFound": "Broadcast not found",
       "template": "Template: {name}",

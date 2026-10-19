@@ -25,6 +25,7 @@ import {
   type BroadcastPlan,
 } from '@/lib/whatsapp/broadcast-core';
 import { decrypt } from '@/lib/whatsapp/encryption';
+import { skipOnImmediateRetry } from '@/lib/whatsapp/broadcast-failures';
 import { resolveTemplateRow } from '@/lib/whatsapp/template-body';
 import { sanitizePhoneForMeta, isValidE164 } from '@/lib/whatsapp/phone-utils';
 
@@ -122,6 +123,8 @@ export interface ResumePlan {
 
 interface RecipientRow {
   id: string;
+  status?: string;
+  error_message?: string | null;
   template_params: unknown;
   contact:
     | { id: string; phone?: string | null }
@@ -168,7 +171,7 @@ export async function planBroadcastResume(
   const statuses = scopeStatuses(scope);
   const { data: rawRows, error: recError } = await db
     .from('broadcast_recipients')
-    .select('id, template_params, contact:contacts(id, phone)')
+    .select('id, status, error_message, template_params, contact:contacts(id, phone)')
     .eq('broadcast_id', broadcastId)
     .in('status', statuses)
     // Oldest first, so repeated capped passes chew through the backlog
@@ -183,7 +186,12 @@ export async function planBroadcastResume(
     throw new BroadcastError('internal', 'Failed to load recipients', 500);
   }
 
-  const rows = (rawRows ?? []) as RecipientRow[];
+  // Failed rows an immediate resend can't help (Meta's marketing limit —
+  // which has its own 24h auto-retry — opted out of marketing, Meta
+  // experiment) are left alone rather than resent and refused again.
+  const rows = ((rawRows ?? []) as RecipientRow[]).filter(
+    (r) => !(r.status === 'failed' && skipOnImmediateRetry(r.error_message))
+  );
 
   // A recipient whose contact has no usable phone can never send. Stamp
   // it failed now: leaving it 'pending' would keep the broadcast in

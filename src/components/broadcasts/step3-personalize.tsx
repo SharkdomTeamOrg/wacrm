@@ -21,6 +21,7 @@ type VariableType = 'static' | 'field' | 'custom_field';
 interface VariableMapping {
   type: VariableType;
   value: string;
+  fallback?: string;
 }
 
 interface Step3Props {
@@ -215,9 +216,11 @@ export function Step3Personalize({
             email: contact.email,
             company: contact.company,
           };
-          replacement = fieldMap[mapping.value] ?? placeholder;
+          replacement =
+            fieldMap[mapping.value]?.trim() || mapping.fallback?.trim() || placeholder;
         } else if (mapping.type === 'custom_field' && mapping.value) {
-          replacement = customValues.get(mapping.value) || placeholder;
+          replacement =
+            customValues.get(mapping.value)?.trim() || mapping.fallback?.trim() || placeholder;
         }
       }
       text = text.replaceAll(placeholder, replacement);
@@ -395,6 +398,25 @@ export function Step3Personalize({
                       </Select>
                     )}
                   </div>
+
+                  {mapping.type !== 'static' && (
+                    <div className="sm:col-span-2">
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        {t('personalize.fallbackLabel')}
+                      </label>
+                      <Input
+                        value={mapping.fallback ?? ''}
+                        onChange={(e) => updateVariable(key, { fallback: e.target.value })}
+                        placeholder={t('personalize.fallbackPlaceholder')}
+                        className="border-border bg-muted text-foreground placeholder:text-muted-foreground"
+                      />
+                      {!mapping.fallback?.trim() && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {t('personalize.fallbackHint')}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

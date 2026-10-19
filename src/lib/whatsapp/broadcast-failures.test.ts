@@ -13,6 +13,8 @@ describe('failureCode', () => {
 describe('failureReason', () => {
   it.each([
     ['[131049] This message was not delivered to maintain healthy ecosystem engagement.', 'marketingLimit'],
+    ['(#131008) Required parameter is missing — Parameter of type text is missing text value', 'missingVariable'],
+    ['Not sent: contact opted out of marketing', 'userStoppedMarketing'],
     ['[131050] Unable to deliver the message: user stopped marketing messages', 'userStoppedMarketing'],
     ['(#131026) Message undeliverable', 'undeliverable'],
     ['[130472] User’s number is part of an experiment', 'experiment'],

@@ -14,6 +14,7 @@ export const FAILURE_REASONS = [
   'userStoppedMarketing', // 131050 — person turned off marketing from you
   'undeliverable', // 131026 — not on WhatsApp / can't receive
   'experiment', // 130472 — Meta marketing experiment holdout
+  'missingVariable', // 131008 — a template variable was empty (e.g. no name)
   'templateProblem', // 132xxx — template params/approval/paused/disabled
   'rateLimit', // 130429 / 131056 / 80007 — sending too fast
   'invalidNumber', // local validation / 131030 / 1013
@@ -34,7 +35,8 @@ export function failureReason(errorMessage: string | null | undefined): FailureR
   const code = failureCode(errorMessage)
   const text = (errorMessage ?? '').toLowerCase()
   if (code === 131049) return 'marketingLimit'
-  if (code === 131050) return 'userStoppedMarketing'
+  if (code === 131050 || /opted out of marketing/.test(text)) return 'userStoppedMarketing'
+  if (code === 131008) return 'missingVariable'
   if (code === 131026) return 'undeliverable'
   if (code === 130472) return 'experiment'
   if (code !== null && code >= 132000 && code < 133000) return 'templateProblem'

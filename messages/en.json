@@ -765,6 +765,10 @@
             "title": "Held back by a Meta experiment",
             "advice": "Meta is withholding marketing messages from some users as part of an experiment. Nothing to fix on your side."
           },
+          "missingVariable": {
+            "title": "Missing variable",
+            "advice": "A template variable was empty for these contacts — usually no name saved. Retrying resends the same empty value, so send a new broadcast to them with an “If empty, use” fallback set."
+          },
           "templateProblem": {
             "title": "Template problem",
             "advice": "The template's variables didn't match, or the template is paused, disabled or not approved in this language. Check it in Settings → Templates, then retry."
@@ -954,7 +958,10 @@
           "phone": "Phone",
           "email": "Email",
           "company": "Company"
-        }
+        },
+        "fallbackLabel": "If empty, use",
+        "fallbackPlaceholder": "e.g. there",
+        "fallbackHint": "Contacts with no value fail (Meta rejects an empty variable). Add a fallback like “there” to send to them anyway."
       },
       "scheduleSend": {
         "sendFrom": "Send from",

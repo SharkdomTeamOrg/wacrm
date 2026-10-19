@@ -765,6 +765,10 @@
             "title": "Retenido por un experimento de Meta",
             "advice": "Meta está reteniendo mensajes de marketing a algunos usuarios como parte de un experimento. No hay nada que corregir."
           },
+          "missingVariable": {
+            "title": "Variable vacía",
+            "advice": "Una variable de la plantilla quedó vacía para estos contactos, normalmente por no tener nombre. Completa el campo del contacto o define un valor alternativo al crear la difusión y luego usa Reintentar fallidos."
+          },
           "templateProblem": {
             "title": "Problema con la plantilla",
             "advice": "Las variables no coincidieron o la plantilla está pausada, desactivada o no aprobada en este idioma. Revísala en Configuración → Plantillas y reintenta."
@@ -954,7 +958,10 @@
           "phone": "Teléfono",
           "email": "Correo",
           "company": "Empresa"
-        }
+        },
+        "fallbackLabel": "Si está vacío, usar",
+        "fallbackPlaceholder": "p. ej. hola",
+        "fallbackHint": "Los contactos sin valor fallan (Meta rechaza variables vacías). Añade un valor alternativo para enviarles igualmente."
       },
       "scheduleSend": {
         "sendFrom": "Enviar desde",

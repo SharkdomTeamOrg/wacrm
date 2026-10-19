@@ -765,6 +765,10 @@
             "title": "Retido por um experimento da Meta",
             "advice": "A Meta está retendo mensagens de marketing para alguns usuários como parte de um experimento. Não há nada a corrigir."
           },
+          "missingVariable": {
+            "title": "Variável vazia",
+            "advice": "Uma variável do modelo ficou vazia para estes contatos, geralmente sem nome salvo. Preencha o campo do contato ou defina um valor alternativo ao criar a transmissão e depois tente as falhas novamente."
+          },
           "templateProblem": {
             "title": "Problema no modelo",
             "advice": "As variáveis não corresponderam, ou o modelo está pausado, desativado ou não aprovado neste idioma. Verifique em Configurações → Modelos e tente de novo."
@@ -954,7 +958,10 @@
           "phone": "Telefone",
           "email": "E-mail",
           "company": "Empresa"
-        }
+        },
+        "fallbackLabel": "Se vazio, usar",
+        "fallbackPlaceholder": "ex.: cliente",
+        "fallbackHint": "Contatos sem valor falham (a Meta recusa variáveis vazias). Adicione um valor alternativo para enviar mesmo assim."
       },
       "scheduleSend": {
         "sendFrom": "Enviar de",

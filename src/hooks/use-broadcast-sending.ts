@@ -45,8 +45,10 @@ export interface AudienceConfig {
  */
 export type VariableMapping =
   | { type: 'static'; value: string }
-  | { type: 'field'; value: string }
-  | { type: 'custom_field'; value: string };
+  // `fallback` fills the variable when the contact's value is blank —
+  // Meta rejects an empty parameter (131008).
+  | { type: 'field'; value: string; fallback?: string }
+  | { type: 'custom_field'; value: string; fallback?: string };
 
 interface BroadcastPayload {
   name: string;
@@ -101,6 +103,10 @@ interface BroadcastApiResult {
 /** contactId → (customFieldId → value). */
 type CustomValueIndex = Map<string, Map<string, string>>;
 
+function orFallback(value: string | undefined, fallback: string | undefined): string {
+  return value?.trim() ? value : (fallback?.trim() ?? '');
+}
+
 /**
  * Per-contact resolution of custom-field placeholders. Static and
  * built-in-field mappings resolve synchronously; custom fields read
@@ -131,11 +137,11 @@ export function resolveVariables(
         email: contact.email,
         company: contact.company,
       };
-      return fieldMap[v.value] ?? '';
+      return orFallback(fieldMap[v.value], v.fallback);
     }
 
     // custom_field
-    return customValues?.get(v.value) ?? '';
+    return orFallback(customValues?.get(v.value), v.fallback);
   });
 }
 

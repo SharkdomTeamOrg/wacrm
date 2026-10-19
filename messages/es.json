@@ -734,6 +734,57 @@
       "unknown": "Desconocido"
     },
     "detail": {
+      "failures": {
+        "notRetriedNow": "{count, plural, =1 {1 fallo queda} other {# fallos quedan}} fuera de Reintentar fallidos — límite de marketing de Meta (se reintenta solo tras 24 h), marketing desactivado o un experimento de Meta. Reenviar ahora se rechazaría de nuevo.",
+        "title": "Por qué fallaron los mensajes",
+        "subtitle": "Fallos agrupados por el motivo de Meta, con qué hacer en cada caso.",
+        "showThese": "Ver estos",
+        "showAll": "Ver todos",
+        "autoRetry": "{count, plural, =1 {1 mensaje tiene} other {# mensajes tienen}} reintento automático programado · el próximo a las {time}",
+        "codes": "Códigos de error de Meta: {codes}",
+        "reasons": {
+          "marketingLimit": {
+            "title": "Límite de marketing de Meta para estas personas",
+            "advice": "Meta limita cuántos mensajes de marketing recibe una persona de todas las empresas. Meta aconseja esperar al menos 24 horas; wacrm reintenta una vez si ese ajuste está activo. Las plantillas de utilidad no tienen límite."
+          },
+          "userStoppedMarketing": {
+            "title": "Desactivaron tus mensajes de marketing",
+            "advice": "Estas personas decidieron dejar de recibir marketing de tu empresa en WhatsApp. No reenvíes marketing; aún pueden recibir mensajes de utilidad y responderte."
+          },
+          "undeliverable": {
+            "title": "No se pudo entregar",
+            "advice": "El número puede no estar en WhatsApp, usar una versión antigua o no haber aceptado los términos más recientes. Revisa los números; reintentar no suele ayudar."
+          },
+          "experiment": {
+            "title": "Retenido por un experimento de Meta",
+            "advice": "Meta está reteniendo mensajes de marketing a algunos usuarios como parte de un experimento. No hay nada que corregir."
+          },
+          "templateProblem": {
+            "title": "Problema con la plantilla",
+            "advice": "Las variables no coincidieron o la plantilla está pausada, desactivada o no aprobada en este idioma. Revísala en Configuración → Plantillas y reintenta."
+          },
+          "rateLimit": {
+            "title": "Envío demasiado rápido",
+            "advice": "Meta limitó los envíos. Usa Reintentar fallidos en unos minutos."
+          },
+          "invalidNumber": {
+            "title": "Número no válido",
+            "advice": "El número está mal formado o le falta el código de país (p. ej. +91…). Corrige el contacto y reintenta."
+          },
+          "authExpired": {
+            "title": "Conexión de WhatsApp vencida",
+            "advice": "El token de acceso no es válido o venció. Actualízalo en Configuración → WhatsApp y usa Reintentar fallidos."
+          },
+          "accountIssue": {
+            "title": "Problema con la cuenta de WhatsApp",
+            "advice": "Meta informa un problema de la cuenta (bloqueo, pago o certificado). Revisa WhatsApp Manager."
+          },
+          "other": {
+            "title": "Otros errores",
+            "advice": "El mensaje exacto de Meta está en la columna Error de la tabla de destinatarios."
+          }
+        }
+      },
       "backToBroadcasts": "Volver a difusiones",
       "notFound": "Difusión no encontrada",
       "template": "Plantilla: {name}",

@@ -41,6 +41,12 @@ import {
   getRecipientStatus,
 } from '@/lib/broadcast-status';
 import { useTranslations } from 'next-intl';
+import {
+  failureReason,
+  groupFailures,
+  skipOnImmediateRetry,
+  type FailureReason,
+} from '@/lib/whatsapp/broadcast-failures';
 
 interface StatCardProps {
   label: string;
@@ -155,6 +161,13 @@ export default function BroadcastDetailPage() {
   const [recipients, setRecipients] = useState<BroadcastRecipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // "Why messages failed" card: click a reason to filter the table.
+  const [reasonFilter, setReasonFilter] = useState<FailureReason | null>(null);
+  // 131049 recipients whose message has an auto-retry scheduled (migration 050).
+  const [retryInfo, setRetryInfo] = useState<{ scheduled: number; nextAt: string | null }>({
+    scheduled: 0,
+    nextAt: null,
+  });
   const [statusFilter, setStatusFilter] = useState<RecipientStatus | 'all'>(
     'all',
   );
@@ -185,6 +198,23 @@ export default function BroadcastDetailPage() {
 
       if (recsError) throw recsError;
       setRecipients(recs ?? []);
+
+      // Which marketing-limit failures already have a 24h retry queued.
+      const limitedWamids = (recs ?? [])
+        .filter((r) => r.status === 'failed' && failureReason(r.error_message) === 'marketingLimit')
+        .map((r) => r.whatsapp_message_id)
+        .filter((w): w is string => !!w);
+      if (limitedWamids.length > 0) {
+        const { data: retries } = await supabase
+          .from('messages')
+          .select('retry_at')
+          .in('message_id', limitedWamids)
+          .eq('retry_status', 'scheduled')
+          .order('retry_at', { ascending: true });
+        setRetryInfo({ scheduled: retries?.length ?? 0, nextAt: retries?.[0]?.retry_at ?? null });
+      } else {
+        setRetryInfo({ scheduled: 0, nextAt: null });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('notFound'));
     } finally {
@@ -198,10 +228,15 @@ export default function BroadcastDetailPage() {
 
   const filteredRecipients = useMemo(
     () =>
-      statusFilter === 'all'
+      (statusFilter === 'all'
         ? recipients
-        : recipients.filter((r) => r.status === statusFilter),
-    [recipients, statusFilter],
+        : recipients.filter((r) => r.status === statusFilter)
+      ).filter(
+        (r) =>
+          !reasonFilter ||
+          (r.status === 'failed' && failureReason(r.error_message) === reasonFilter),
+      ),
+    [recipients, statusFilter, reasonFilter],
   );
 
   function handleExport() {
@@ -319,8 +354,15 @@ export default function BroadcastDetailPage() {
 
   const status = getBroadcastStatus(broadcast.status);
 
+  const failureGroups = groupFailures(recipients);
   const pendingCount = recipients.filter((r) => r.status === 'pending').length;
-  const retryableCount = recipients.filter((r) => r.status === 'failed').length;
+  // Matches the server: Retry failed skips failures a resend can't fix now.
+  const retryableCount = recipients.filter(
+    (r) => r.status === 'failed' && !skipOnImmediateRetry(r.error_message),
+  ).length;
+  const notRetriedNowCount = recipients.filter(
+    (r) => r.status === 'failed' && skipOnImmediateRetry(r.error_message),
+  ).length;
   // A campaign whose tab went away sits in 'sending' with recipients
   // still pending and nothing left to move them. Name that state rather
   // than leaving a permanently pulsing "sending" badge.
@@ -422,6 +464,11 @@ export default function BroadcastDetailPage() {
                 ? t('resumeStalledHint', { count: pendingCount })
                 : t('resumeHint', { count: retryableCount })}
             </p>
+            {notRetriedNowCount > 0 && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t('failures.notRetriedNow', { count: notRetriedNowCount })}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {pendingCount > 0 && (
@@ -506,13 +553,81 @@ export default function BroadcastDetailPage() {
 
       <FunnelChart steps={funnelSteps} />
 
+      {/* Why messages failed — grouped by reason, with what to do. */}
+      {failureGroups.length > 0 && (
+        <div className="rounded-xl border border-border bg-card">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="text-sm font-medium text-foreground">{t('failures.title')}</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('failures.subtitle')}</p>
+          </div>
+          <ul className="divide-y divide-border">
+            {failureGroups.map((g) => (
+              <li key={g.reason} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1 text-sm">
+                  <p className="font-medium text-foreground">
+                    <span className="mr-2 inline-flex min-w-7 justify-center rounded-md bg-red-500/10 px-1.5 text-red-400">
+                      {g.count}
+                    </span>
+                    {t(`failures.reasons.${g.reason}.title`)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t(`failures.reasons.${g.reason}.advice`)}
+                  </p>
+                  {g.reason === 'marketingLimit' && retryInfo.scheduled > 0 && (
+                    <p className="mt-1 text-xs text-primary">
+                      ⏳{' '}
+                      {t('failures.autoRetry', {
+                        count: retryInfo.scheduled,
+                        time: retryInfo.nextAt
+                          ? new Date(retryInfo.nextAt).toLocaleString([], {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : '',
+                      })}
+                    </p>
+                  )}
+                  {g.reason === 'other' && g.codes.length > 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('failures.codes', { codes: g.codes.join(', ') })}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-muted-foreground hover:bg-muted"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setReasonFilter(reasonFilter === g.reason ? null : g.reason);
+                  }}
+                >
+                  {reasonFilter === g.reason ? t('failures.showAll') : t('failures.showThese')}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Recipients Table */}
       <div className="rounded-xl border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
           <h2 className="text-sm font-medium text-foreground">
-            {statusFilter !== 'all'
+            {statusFilter !== 'all' || reasonFilter
               ? t('recipientsHeader', { filtered: filteredRecipients.length, total: recipients.length })
               : t('recipientsHeaderAll', { total: recipients.length })}
+            {reasonFilter && (
+              <button
+                type="button"
+                onClick={() => setReasonFilter(null)}
+                className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] font-normal text-foreground hover:bg-muted/70"
+              >
+                {t(`failures.reasons.${reasonFilter}.title`)} ✕
+              </button>
+            )}
           </h2>
           <div className="flex items-center gap-2">
             <DropdownMenu>

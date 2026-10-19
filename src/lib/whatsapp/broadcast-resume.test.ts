@@ -227,6 +227,31 @@ describe('planBroadcastResume', () => {
     expect(unsendable).toBe(0);
   });
 
+  it('Retry failed skips failures a resend cannot fix now (131049, 131050, 130472)', async () => {
+    const fail = (id: string, error_message: string) => ({
+      ...recipient(id, '+15551234567'),
+      status: 'failed',
+      error_message,
+    });
+    const { plan } = await planBroadcastResume(
+      planDb({
+        broadcast: BROADCAST,
+        config: CONFIG,
+        recipients: [
+          fail('limit', '[131049] This message was not delivered to maintain healthy ecosystem engagement.'),
+          fail('optout', '[131050] user stopped marketing messages'),
+          fail('exp', '[130472] part of an experiment'),
+          fail('rate', '(#130429) Rate limit hit'),
+        ],
+      }),
+      'acct-1',
+      'bc-1',
+      'failed'
+    );
+    // only the throttled one is worth resending right away
+    expect(plan.planned.map((p) => p.recipientRowId)).toEqual(['rate']);
+  });
+
   it('scopes to failed rows when retrying, and to both for "all"', async () => {
     const failedWrites: PlanWrites = {};
     await planBroadcastResume(

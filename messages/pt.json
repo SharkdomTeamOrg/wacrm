@@ -734,6 +734,57 @@
       "unknown": "Desconhecido"
     },
     "detail": {
+      "failures": {
+        "notRetriedNow": "{count, plural, =1 {1 falha fica} other {# falhas ficam}} fora de Tentar falhas novamente — limite de marketing da Meta (reenviado automaticamente após 24 h), marketing desativado ou um experimento da Meta. Reenviar agora seria recusado de novo.",
+        "title": "Por que as mensagens falharam",
+        "subtitle": "Falhas agrupadas pelo motivo da Meta, com o que fazer em cada caso.",
+        "showThese": "Ver estes",
+        "showAll": "Ver todos",
+        "autoRetry": "{count, plural, =1 {1 mensagem tem} other {# mensagens têm}} nova tentativa automática agendada · a próxima às {time}",
+        "codes": "Códigos de erro da Meta: {codes}",
+        "reasons": {
+          "marketingLimit": {
+            "title": "Limite de marketing da Meta para essas pessoas",
+            "advice": "A Meta limita quantas mensagens de marketing uma pessoa recebe de todas as empresas. A Meta recomenda esperar pelo menos 24 horas — o wacrm tenta de novo uma vez se essa opção estiver ativa. Modelos de utilidade não têm limite."
+          },
+          "userStoppedMarketing": {
+            "title": "Desativaram suas mensagens de marketing",
+            "advice": "Essas pessoas optaram por parar de receber marketing da sua empresa no WhatsApp. Não reenvie marketing; elas ainda podem receber mensagens de utilidade e responder."
+          },
+          "undeliverable": {
+            "title": "Não foi possível entregar",
+            "advice": "O número pode não estar no WhatsApp, usar uma versão antiga ou não ter aceitado os termos mais recentes. Verifique os números; tentar de novo raramente ajuda."
+          },
+          "experiment": {
+            "title": "Retido por um experimento da Meta",
+            "advice": "A Meta está retendo mensagens de marketing para alguns usuários como parte de um experimento. Não há nada a corrigir."
+          },
+          "templateProblem": {
+            "title": "Problema no modelo",
+            "advice": "As variáveis não corresponderam, ou o modelo está pausado, desativado ou não aprovado neste idioma. Verifique em Configurações → Modelos e tente de novo."
+          },
+          "rateLimit": {
+            "title": "Envio rápido demais",
+            "advice": "A Meta limitou os envios. Use Tentar falhas novamente em alguns minutos."
+          },
+          "invalidNumber": {
+            "title": "Número inválido",
+            "advice": "O número está malformado ou sem o código do país (ex.: +91…). Corrija o contato e tente de novo."
+          },
+          "authExpired": {
+            "title": "Conexão do WhatsApp expirada",
+            "advice": "O token de acesso é inválido ou expirou. Atualize em Configurações → WhatsApp e use Tentar falhas novamente."
+          },
+          "accountIssue": {
+            "title": "Problema na conta do WhatsApp",
+            "advice": "A Meta informa um problema na conta (bloqueio, pagamento ou certificado). Verifique o WhatsApp Manager."
+          },
+          "other": {
+            "title": "Outros erros",
+            "advice": "A mensagem exata da Meta está na coluna Erro da tabela de destinatários abaixo."
+          }
+        }
+      },
       "backToBroadcasts": "Voltar aos disparos",
       "notFound": "Disparo não encontrado",
       "template": "Modelo: {name}",

@@ -17,6 +17,7 @@ import {
   templateContentText,
 } from '@/lib/whatsapp/template-body'
 import { supabaseAdmin } from './admin-client'
+import { isMarketingTemplate, OPTED_OUT_ERROR } from '@/lib/contacts/marketing-opt-out'
 
 // ------------------------------------------------------------
 // Automation-side Meta sender.
@@ -123,7 +124,7 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
   // new tenancy column.
   const { data: contact, error: contactErr } = await db
     .from('contacts')
-    .select('id, phone, wa_user_id')
+    .select('id, phone, wa_user_id, marketing_opt_out_at')
     .eq('id', input.contactId)
     .eq('account_id', input.accountId)
     .maybeSingle()
@@ -171,6 +172,11 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
           )
         ).row
       : null
+
+  // Opted-out contacts never get a Marketing template (migration 051).
+  if (input.kind === 'template' && contact.marketing_opt_out_at && isMarketingTemplate(templateRow)) {
+    throw new Error(OPTED_OUT_ERROR)
+  }
 
   const attempt = async (phone: string): Promise<string> => {
     if (input.kind === 'template') {

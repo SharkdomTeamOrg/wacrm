@@ -370,6 +370,12 @@
     }
   },
   "Contacts": {
+    "optOut": {
+      "label": "마케팅 메시지",
+      "subscribed": "켜짐. 브로드캐스트와 마케팅 템플릿이 전송됩니다.",
+      "optedOut": "{date}부터 꺼짐: {source, select, keyword {STOP으로 답장함} meta {WhatsApp에서 마케팅을 끔} other {상담원이 설정함}}. 브로드캐스트와 마케팅 템플릿은 제외되며, 일반 답장은 계속 보낼 수 있습니다.",
+      "saveFailed": "마케팅 수신 설정을 변경하지 못했습니다"
+    },
     "page": {
       "title": "연락처",
       "subtitle": "연락처 목록을 관리하세요. 전체 연락처 {count}개.",

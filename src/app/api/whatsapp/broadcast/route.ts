@@ -7,6 +7,7 @@ import { decrypt } from '@/lib/whatsapp/encryption'
 import type { SendTimeParams } from '@/lib/whatsapp/template-send-builder'
 import { resolveTemplateRow } from '@/lib/whatsapp/template-body'
 import { persistBroadcastMessage } from '@/lib/whatsapp/persist-broadcast-message'
+import { isMarketingTemplate, OPTED_OUT_ERROR } from '@/lib/contacts/marketing-opt-out'
 import {
   sanitizePhoneForMeta,
   isValidE164,
@@ -170,10 +171,11 @@ export async function POST(request: Request) {
       ),
     ]
     const contactsById = new Set<string>()
+    const optedOut = new Set<string>()
     if (contactIds.length > 0) {
       const { data: contacts, error: contactsError } = await supabase
         .from('contacts')
-        .select('id')
+        .select('id, marketing_opt_out_at')
         .eq('account_id', accountId)
         .in('id', contactIds)
       if (contactsError) {
@@ -186,8 +188,13 @@ export async function POST(request: Request) {
           { status: 500 }
         )
       }
-      for (const contact of contacts ?? []) contactsById.add(contact.id)
+      for (const contact of contacts ?? []) {
+        contactsById.add(contact.id)
+        if (contact.marketing_opt_out_at) optedOut.add(contact.id)
+      }
     }
+    // Opted-out contacts never get a Marketing template (migration 051).
+    if (!isMarketingTemplate(templateRow)) optedOut.clear()
 
     const results: BroadcastResult[] = []
     let sentCount = 0
@@ -200,6 +207,12 @@ export async function POST(request: Request) {
           status: 'failed',
           error: 'Contact not found in this account',
         })
+        failedCount++
+        continue
+      }
+
+      if (recipient.contact_id && optedOut.has(recipient.contact_id)) {
+        results.push({ phone: recipient.phone, status: 'failed', error: OPTED_OUT_ERROR })
         failedCount++
         continue
       }

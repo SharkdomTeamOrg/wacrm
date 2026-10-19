@@ -1,4 +1,5 @@
 import { MARKETING_LIMIT_ERROR, onMarketingLimitFailure } from '@/lib/whatsapp/marketing-retry'
+import { optKeyword, setMarketingOptOut } from '@/lib/contacts/marketing-opt-out'
 import { NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
@@ -29,6 +30,8 @@ import {
 // give it headroom beyond the platform default (Vercel clamps this to the
 // plan's ceiling). Tune as needed.
 export const maxDuration = 60
+
+const USER_STOPPED_MARKETING_ERROR = 131050
 
 // Lazy-initialized to avoid build-time crash when env vars are missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -468,6 +471,24 @@ async function handleStatusUpdate(status: {
     }
   }
 
+  // 131050: the user turned off marketing from this business in WhatsApp.
+  // Put them on the do-not-market list so later broadcasts skip them.
+  if (failure?.code === USER_STOPPED_MARKETING_ERROR) {
+    try {
+      const { data: rows } = await supabaseAdmin()
+        .from('messages')
+        .select('conversation:conversations(contact_id)')
+        .eq('message_id', status.id)
+      const contactIds = new Set<string>(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (rows ?? []).map((r: any) => r.conversation?.contact_id).filter(Boolean),
+      )
+      for (const id of contactIds) await setMarketingOptOut(supabaseAdmin(), id, true, 'meta')
+    } catch (err) {
+      console.error('[webhook] recording 131050 opt-out failed:', err)
+    }
+  }
+
   // Webhook fan-out for this status change happens at the END of this
   // handler (after the broadcast mirror below), so a slow subscriber
   // endpoint can't delay the broadcast_recipients update.
@@ -872,6 +893,17 @@ async function processMessage(
   // so the broadcast's `replied_count` advances (via the aggregate
   // trigger installed in migration 003).
   await flagBroadcastReplyIfAny(accountId, contactRecord.id)
+
+  // "STOP" / "START" (or WhatsApp's Stop promotions button) as the whole
+  // message updates the do-not-market list. Never fatal to inbound.
+  const opt = optKeyword(contentText)
+  if (opt) {
+    try {
+      await setMarketingOptOut(supabaseAdmin(), contactRecord.id, opt === 'out', 'keyword')
+    } catch (err) {
+      console.error('[webhook] marketing opt-out update failed:', err)
+    }
+  }
 
   // ============================================================
   // Flow runner dispatch.

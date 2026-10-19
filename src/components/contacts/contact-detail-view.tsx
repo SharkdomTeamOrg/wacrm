@@ -42,6 +42,7 @@ import {
   LayoutTemplate,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { MarketingOptOutToggle } from '@/components/contacts/marketing-opt-out-toggle';
 import { contactHandle } from '@/lib/whatsapp/wa-identity';
 import { parseInternationalPhone } from '@/lib/whatsapp/phone-utils';
 
@@ -523,6 +524,11 @@ export function ContactDetailView({
                     )}
                     {t('saveChangesBtn')}
                   </Button>
+                  {contact && (
+                    <div className="-mx-3 border-t border-border pt-2">
+                      <MarketingOptOutToggle contact={contact} />
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 

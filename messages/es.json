@@ -370,6 +370,12 @@
     }
   },
   "Contacts": {
+    "optOut": {
+      "label": "Mensajes de marketing",
+      "subscribed": "Activados. Las difusiones y plantillas de marketing pueden llegarle.",
+      "optedOut": "Desactivados desde {date}: {source, select, keyword {respondió STOP} meta {desactivó el marketing en WhatsApp} other {marcado por un agente}}. Las difusiones y plantillas de marketing lo omiten; las respuestas normales sí se envían.",
+      "saveFailed": "No se pudo actualizar la preferencia de marketing"
+    },
     "page": {
       "title": "Contactos",
       "subtitle": "Administra tu lista de contactos. {count} contactos en total.",

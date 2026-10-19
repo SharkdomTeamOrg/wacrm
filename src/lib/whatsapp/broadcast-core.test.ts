@@ -3,13 +3,23 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   createBroadcast,
   finalizeBroadcastStatus,
+  deliverBroadcast,
   BroadcastError,
+  type BroadcastPlan,
 } from './broadcast-core';
+import { OPTED_OUT_ERROR } from '@/lib/contacts/marketing-opt-out';
 
 // Contact resolution and token decryption are exercised elsewhere — stub
 // them so these tests focus on the persistence boundary.
 vi.mock('@/lib/whatsapp/encryption', () => ({
   decrypt: () => 'plain-access-token',
+}));
+const sendTemplateMessage = vi.fn(async () => ({ messageId: 'wamid.sent' }));
+vi.mock('@/lib/whatsapp/meta-api', () => ({
+  sendTemplateMessage: (...a: unknown[]) => sendTemplateMessage(...(a as [])),
+}));
+vi.mock('@/lib/whatsapp/persist-broadcast-message', () => ({
+  persistBroadcastMessage: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/api/v1/contacts', () => ({
   findOrCreateContact: vi.fn(async () => ({ id: 'c1' })),
@@ -270,5 +280,56 @@ describe('finalizeBroadcastStatus', () => {
       'b-1'
     );
     expect(writes.update?.status).toBe('sent');
+  });
+});
+
+describe('deliverBroadcast marketing opt-out (migration 051)', () => {
+  // Chainable stub: `contacts` answers the opt-out lookup, every
+  // broadcast_recipients update is recorded, everything else is inert.
+  function deliverDb(optedOut: string[]) {
+    const updates: { id: unknown; patch: Record<string, unknown> }[] = [];
+    const db = {
+      from(table: string) {
+        let patch: Record<string, unknown> | null = null;
+        const c: Record<string, unknown> = {
+          select: () => c,
+          in: () => c,
+          not: () => Promise.resolve({ data: optedOut.map((id) => ({ id })), error: null }),
+          update: (p: Record<string, unknown>) => ((patch = p), c),
+          eq: (_col: string, v: unknown) => {
+            if (table === 'broadcast_recipients' && patch) updates.push({ id: v, patch });
+            return Object.assign(Promise.resolve({ data: null, error: null, count: 0 }), c);
+          },
+        };
+        return c;
+      },
+    } as unknown as SupabaseClient;
+    return { db, updates };
+  }
+  const plan = (category: string): BroadcastPlan => ({
+    broadcastId: 'b-1', accountId: 'acc', auditUserId: 'u', whatsappConfigId: 'cfg',
+    templateName: 'promo', templateLanguage: 'en', phoneNumberId: 'pn', accessToken: 't',
+    templateRow: { category } as BroadcastPlan['templateRow'],
+    planned: [
+      { recipientRowId: 'r-in', contactId: 'c-in', phone: '+14155550001', params: [] },
+      { recipientRowId: 'r-out', contactId: 'c-out', phone: '+14155550002', params: [] },
+    ],
+    rejected: 0,
+  });
+
+  it('skips opted-out contacts for a Marketing template', async () => {
+    sendTemplateMessage.mockClear();
+    const { db, updates } = deliverDb(['c-out']);
+    await deliverBroadcast(db, plan('MARKETING'));
+    expect(sendTemplateMessage).toHaveBeenCalledTimes(1);
+    expect(updates.find((u) => u.id === 'r-out')?.patch).toEqual({ status: 'failed', error_message: OPTED_OUT_ERROR });
+    expect(updates.find((u) => u.id === 'r-in')?.patch.status).toBe('sent');
+  });
+
+  it('still sends a Utility template to an opted-out contact', async () => {
+    sendTemplateMessage.mockClear();
+    const { db } = deliverDb(['c-out']);
+    await deliverBroadcast(db, plan('UTILITY'));
+    expect(sendTemplateMessage).toHaveBeenCalledTimes(2);
   });
 });

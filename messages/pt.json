@@ -370,6 +370,12 @@
     }
   },
   "Contacts": {
+    "optOut": {
+      "label": "Mensagens de marketing",
+      "subscribed": "Ativadas. Transmissões e modelos de marketing podem alcançá-lo.",
+      "optedOut": "Desativadas desde {date}: {source, select, keyword {respondeu STOP} meta {desativou o marketing no WhatsApp} other {marcado por um agente}}. Transmissões e modelos de marketing o ignoram; respostas normais continuam sendo enviadas.",
+      "saveFailed": "Não foi possível atualizar a preferência de marketing"
+    },
     "page": {
       "title": "Contatos",
       "subtitle": "Gerencie sua lista de contatos. {count} contatos no total.",

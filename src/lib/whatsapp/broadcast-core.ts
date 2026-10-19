@@ -21,6 +21,11 @@ import type { WhatsAppConfig as WhatsAppConfigRow } from '@/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { sendTemplateMessage } from '@/lib/whatsapp/meta-api';
+import {
+  isMarketingTemplate,
+  OPTED_OUT_ERROR,
+  optedOutContactIds,
+} from '@/lib/contacts/marketing-opt-out';
 import { decrypt } from '@/lib/whatsapp/encryption';
 import {
   parseInternationalPhone,
@@ -286,7 +291,19 @@ export async function deliverBroadcast(
   db: SupabaseClient,
   plan: BroadcastPlan
 ): Promise<void> {
+  // Opted-out contacts never get a Marketing template (migration 051).
+  const optedOut = isMarketingTemplate(plan.templateRow)
+    ? await optedOutContactIds(db, plan.planned.map((r) => r.contactId))
+    : new Set<string>();
+
   for (const recipient of plan.planned) {
+    if (optedOut.has(recipient.contactId)) {
+      await db
+        .from('broadcast_recipients')
+        .update({ status: 'failed', error_message: OPTED_OUT_ERROR })
+        .eq('id', recipient.recipientRowId);
+      continue;
+    }
     const variants = phoneVariants(recipient.phone);
     let sentMessageId: string | null = null;
     let lastError: string | null = null;

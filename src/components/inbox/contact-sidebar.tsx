@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { useTranslations } from "next-intl";
+import { MarketingOptOutToggle } from "@/components/contacts/marketing-opt-out-toggle";
 import { contactHandle } from "@/lib/whatsapp/wa-identity";
 
 interface ContactSidebarProps {
@@ -183,6 +184,8 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
               </div>
             )}
           </div>
+
+          <MarketingOptOutToggle contact={contact} />
 
           {/* Divider */}
           <div className="my-4 border-t border-border" />

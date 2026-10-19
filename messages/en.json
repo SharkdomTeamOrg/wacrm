@@ -370,6 +370,12 @@
     }
   },
   "Contacts": {
+    "optOut": {
+      "label": "Marketing messages",
+      "subscribed": "On. Broadcasts and marketing templates can reach them.",
+      "optedOut": "Off since {date}: {source, select, keyword {they replied STOP} meta {they turned off marketing in WhatsApp} other {marked by an agent}}. Broadcasts and marketing templates skip them; normal replies still go out.",
+      "saveFailed": "Couldn't update marketing preference"
+    },
     "page": {
       "title": "Contacts",
       "subtitle": "Manage your contact list. {count} total contacts.",

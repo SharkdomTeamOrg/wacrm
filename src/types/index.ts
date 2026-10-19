@@ -115,6 +115,9 @@ export interface Contact {
   /** WhatsApp username without the leading @. Display only: usernames
    *  are user-changeable, so they must never key a contact. */
   wa_username?: string | null;
+  /** Set when the contact opted out of marketing (migration 051). */
+  marketing_opt_out_at?: string | null;
+  marketing_opt_out_source?: 'keyword' | 'meta' | 'manual' | null;
   name?: string;
   email?: string;
   company?: string;

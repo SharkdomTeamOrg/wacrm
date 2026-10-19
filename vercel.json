@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/cron/template-retries", "schedule": "0 * * * *" }
+  ]
+}

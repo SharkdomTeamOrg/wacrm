@@ -186,6 +186,9 @@
       "chatOptions": "Opções da conversa"
     },
     "messageThread": {
+      "retryActionFailed": "Não foi possível atualizar a nova tentativa",
+      "retryScheduledToast": "Nova tentativa agendada em 24 horas",
+      "retryCancelledToast": "Nova tentativa cancelada",
       "backToConversations": "Voltar às conversas",
       "hideContactPanel": "Ocultar painel do contato",
       "showContactPanel": "Mostrar painel do contato",
@@ -266,6 +269,14 @@
       "quickReplySaveError": "Não foi possível salvar a resposta rápida."
     },
     "bubble": {
+      "retryScheduled": "A Meta limitou mensagens de marketing para esta pessoa — nova tentativa automática agendada para {time}",
+      "retryCancel": "Cancelar",
+      "retrySent": "Reenviado após 24 horas — veja a mensagem reenviada abaixo",
+      "retryFailed": "A nova tentativa automática também não foi entregue",
+      "retryOffered": "Bloqueado pelo limite de marketing da Meta para esta pessoa.",
+      "retryCancelled": "Nova tentativa automática cancelada.",
+      "retrySchedule": "Tentar de novo em 24 h",
+      "retryIsResend": "Nova tentativa automática de uma mensagem limitada pela Meta",
       "photo": "Foto",
       "video": "Vídeo",
       "audio": "Áudio",
@@ -1648,6 +1659,9 @@
       "ownerHint": "Controle total da conta e do faturamento"
     },
     "whatsapp": {
+      "autoRetry": "Reenviar mensagens bloqueadas pelo limite de marketing da Meta",
+      "autoRetryDesc": "Quando a Meta recusa um modelo de marketing porque a pessoa recebeu muitos (erro 131049), reenvia uma vez, 24 horas depois — a espera recomendada pela Meta. Os agentes também podem cancelar ou agendar o reenvio na mensagem.",
+      "autoRetrySaveFailed": "Não foi possível salvar a configuração de reenvio",
       "title": "Conexão com o WhatsApp",
       "description": "Conecte sua API do WhatsApp Business da Meta. Credenciais, webhook e etapas de configuração ficam todos aqui.",
       "tokenCorrupted": "Não foi possível descriptografar o token armazenado",

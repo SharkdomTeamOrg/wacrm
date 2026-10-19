@@ -24,6 +24,7 @@ import {
 } from "./message-media";
 import { InteractivePreview } from "@/components/interactive/interactive-preview";
 import { useTranslations } from "next-intl";
+import { isRetryable } from "@/lib/whatsapp/marketing-retry-rules";
 
 interface MessageBubbleProps {
   message: Message;
@@ -38,6 +39,8 @@ interface MessageBubbleProps {
    * stays inline and non-clickable.
    */
   onOpenMedia?: (messageId: string) => void;
+  /** Schedule / cancel the one 24h retry of a 131049-refused template. */
+  onRetryAction?: (action: "schedule" | "cancel") => void;
 }
 
 /**
@@ -238,6 +241,55 @@ function MessageContent({
   }
 }
 
+/**
+ * Meta's marketing cap (131049) auto-retry state under a template bubble
+ * (migration 050): scheduled → cancel, retryable → schedule, then outcome.
+ */
+function RetryNote({
+  message,
+  onRetryAction,
+  t,
+}: {
+  message: Message;
+  onRetryAction?: (action: "schedule" | "cancel") => void;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const linkCls = "ml-1 font-medium text-primary hover:underline";
+  const when = message.retry_at ? format(new Date(message.retry_at), "d MMM, HH:mm") : "";
+  let body: React.ReactNode = null;
+
+  if (message.retry_of) {
+    body = <>↻ {t("retryIsResend")}</>;
+  } else if (message.retry_status === "scheduled" || message.retry_status === "running") {
+    body = (
+      <>
+        ⏳ {t("retryScheduled", { time: when })}
+        {message.retry_status === "scheduled" && onRetryAction && (
+          <button type="button" className={linkCls} onClick={() => onRetryAction("cancel")}>
+            {t("retryCancel")}
+          </button>
+        )}
+      </>
+    );
+  } else if (message.retry_status === "sent") {
+    body = <>↻ {t("retrySent")}</>;
+  } else if (message.retry_status === "failed") {
+    body = <>{t("retryFailed")}{message.retry_error ? ` — ${message.retry_error}` : ""}</>;
+  } else if (isRetryable(message) && onRetryAction) {
+    body = (
+      <>
+        {message.retry_status === "cancelled" ? t("retryCancelled") : t("retryOffered")}
+        <button type="button" className={linkCls} onClick={() => onRetryAction("schedule")}>
+          {t("retrySchedule")}
+        </button>
+      </>
+    );
+  }
+
+  if (!body) return null;
+  return <p className="mt-0.5 px-1 text-[10px] leading-tight text-muted-foreground">{body}</p>;
+}
+
 export function MessageBubble({
   message,
   reply,
@@ -245,6 +297,7 @@ export function MessageBubble({
   currentUserId,
   onToggleReaction,
   onOpenMedia,
+  onRetryAction,
 }: MessageBubbleProps) {
   const t = useTranslations("Inbox.bubble");
 
@@ -323,6 +376,9 @@ export function MessageBubble({
         >
           {t("notDelivered")}: {failure}
         </p>
+      )}
+      {isAgent && message.content_type === "template" && (
+        <RetryNote message={message} onRetryAction={onRetryAction} t={t} />
       )}
       {reactions && reactions.length > 0 && onToggleReaction && (
         <MessageReactions

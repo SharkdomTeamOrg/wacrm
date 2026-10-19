@@ -186,6 +186,9 @@
       "chatOptions": "Opciones del chat"
     },
     "messageThread": {
+      "retryActionFailed": "No se pudo actualizar el reintento",
+      "retryScheduledToast": "Reintento programado en 24 horas",
+      "retryCancelledToast": "Reintento cancelado",
       "backToConversations": "Volver a las conversaciones",
       "hideContactPanel": "Ocultar panel del contacto",
       "showContactPanel": "Mostrar panel del contacto",
@@ -266,6 +269,14 @@
       "quickReplySaveError": "No se pudo guardar la respuesta rápida."
     },
     "bubble": {
+      "retryScheduled": "Meta limitó los mensajes de marketing a esta persona — reintento automático programado para {time}",
+      "retryCancel": "Cancelar",
+      "retrySent": "Reintentado tras 24 horas — mira el mensaje reenviado abajo",
+      "retryFailed": "El reintento automático tampoco se entregó",
+      "retryOffered": "Bloqueado por el límite de marketing de Meta para esta persona.",
+      "retryCancelled": "Reintento automático cancelado.",
+      "retrySchedule": "Reintentar en 24 h",
+      "retryIsResend": "Reintento automático de un mensaje que Meta limitó antes",
       "photo": "Foto",
       "video": "Video",
       "audio": "Audio",
@@ -1648,6 +1659,9 @@
       "ownerHint": "Control total de la cuenta y la facturación"
     },
     "whatsapp": {
+      "autoRetry": "Reintentar mensajes bloqueados por el límite de marketing de Meta",
+      "autoRetryDesc": "Cuando Meta rechaza una plantilla de marketing porque la persona recibió demasiadas (error 131049), se reenvía una vez, 24 horas después — la espera que recomienda Meta. Los agentes también pueden cancelar o programar el reintento en el mensaje.",
+      "autoRetrySaveFailed": "No se pudo guardar el ajuste de reintento",
       "title": "Conexión con WhatsApp",
       "description": "Conecta tu API de WhatsApp Business de Meta. Credenciales, webhook y pasos de configuración, todo está aquí.",
       "tokenCorrupted": "No se puede descifrar el token almacenado",

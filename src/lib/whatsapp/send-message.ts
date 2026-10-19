@@ -484,6 +484,15 @@ export async function sendMessageToConversation(
       content_text: persistedText,
       media_url: mediaUrl || null,
       template_name: templateName || null,
+      // What was sent, so a 131049 auto-retry can repeat it (migration 050).
+      template_send:
+        messageType === 'template'
+          ? {
+              language: sendLanguage,
+              params: templateParams ?? [],
+              messageParams: templateMessageParams ?? null,
+            }
+          : null,
       interactive_payload:
         messageType === 'interactive' ? interactivePayload : null,
       message_id: waMessageId,

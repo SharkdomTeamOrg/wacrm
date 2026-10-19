@@ -12,6 +12,10 @@ export interface PersistBroadcastMessageParams {
   templateName: string;
   templateRow: MessageTemplate | null;
   templateParams: string[];
+  /** Language the template was sent in (for exact retries). */
+  templateLanguage: string;
+  /** Structured header/button values, when the sender used them. */
+  messageParams?: unknown;
   whatsappMessageId: string;
 }
 
@@ -38,6 +42,11 @@ export async function persistBroadcastMessage(
     content_type: 'template',
     content_text: contentText,
     template_name: params.templateName,
+    template_send: {
+      language: params.templateLanguage,
+      params: params.templateParams,
+      messageParams: params.messageParams ?? null,
+    },
     message_id: params.whatsappMessageId,
     status: 'sent',
     created_at: createdAt,

@@ -1,3 +1,4 @@
+import { MARKETING_LIMIT_ERROR, onMarketingLimitFailure } from '@/lib/whatsapp/marketing-retry'
 import { NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
@@ -455,6 +456,16 @@ async function handleStatusUpdate(status: {
 
   if (msgErr) {
     console.error('Error updating message status:', msgErr)
+  }
+
+  // Meta's per-user marketing cap: schedule the one 24h retry (or record
+  // that a retry was refused too). Never fatal to the status update.
+  if (failure?.code === MARKETING_LIMIT_ERROR) {
+    try {
+      await onMarketingLimitFailure(supabaseAdmin(), status.id)
+    } catch (err) {
+      console.error('[webhook] scheduling 131049 retry failed:', err)
+    }
   }
 
   // Webhook fan-out for this status change happens at the END of this

@@ -186,6 +186,9 @@
       "chatOptions": "Chat options"
     },
     "messageThread": {
+      "retryActionFailed": "Could not update the retry",
+      "retryScheduledToast": "Retry scheduled in 24 hours",
+      "retryCancelledToast": "Retry cancelled",
       "backToConversations": "Back to conversations",
       "hideContactPanel": "Hide contact panel",
       "showContactPanel": "Show contact panel",
@@ -266,6 +269,14 @@
       "quickReplySaveError": "Couldn't save the quick reply."
     },
     "bubble": {
+      "retryScheduled": "Meta limited marketing messages to this person — auto-retry scheduled for {time}",
+      "retryCancel": "Cancel",
+      "retrySent": "Retried after 24 hours — see the resent message below",
+      "retryFailed": "Auto-retry was not delivered either",
+      "retryOffered": "Blocked by Meta's marketing limit for this person.",
+      "retryCancelled": "Auto-retry cancelled.",
+      "retrySchedule": "Retry in 24 h",
+      "retryIsResend": "Automatic retry of a message Meta limited earlier",
       "photo": "Photo",
       "video": "Video",
       "audio": "Audio",
@@ -1648,6 +1659,9 @@
       "ownerHint": "Full control over account and billing"
     },
     "whatsapp": {
+      "autoRetry": "Auto-retry messages blocked by Meta's marketing limit",
+      "autoRetryDesc": "When Meta refuses a marketing template because the person has received too many (error 131049), resend it once, 24 hours later — Meta's recommended wait. Agents can also cancel or schedule a retry on the message.",
+      "autoRetrySaveFailed": "Could not save the auto-retry setting",
       "title": "WhatsApp connection",
       "description": "Connect your Meta WhatsApp Business API. Credentials, webhook, and setup steps all live here.",
       "tokenCorrupted": "Stored token can't be decrypted",

@@ -1,5 +1,7 @@
 {
   "crons": [
+    { "path": "/api/automations/cron", "schedule": "*/5 * * * *" },
+    { "path": "/api/flows/cron", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/template-retries", "schedule": "0 * * * *" }
   ]
 }

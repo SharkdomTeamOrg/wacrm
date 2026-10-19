@@ -797,6 +797,14 @@
         "errorLoad": "Failed to load templates"
       },
       "selectAudience": {
+        "multiCountryHint": "Pick one or more countries.",
+        "reviewRecipients": "Recipients",
+        "reviewRecipientsHint": "Everyone in the selected countries is included. Untick anyone who shouldn't get this broadcast.",
+        "selectedOfTotal": "{selected} of {total} selected",
+        "searchRecipients": "Search by name or phone",
+        "selectAll": "Select all",
+        "clearAll": "Clear all",
+        "noCountryContacts": "No contacts found for the selected countries.",
         "title": "Select Audience",
         "subtitle": "Choose who will receive this broadcast.",
         "method": {

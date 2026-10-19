@@ -8,9 +8,10 @@ import { normalizeKey } from '@/lib/contacts/dedupe';
 import { Contact, MessageTemplate } from '@/types';
 import { toast } from 'sonner';
 import {
-  getPhoneCountryPrefix,
+  audienceCountries,
   type PhoneCountryFilterId,
 } from '@/lib/contacts/country-filters';
+import { fetchCountryContacts } from '@/lib/contacts/fetch-country-contacts';
 
 export type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
@@ -25,7 +26,12 @@ export interface AudienceConfig {
   tagIds?: string[];
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
+  /** Legacy single-country audience (drafts saved before multi-select). */
   phoneCountry?: PhoneCountryFilterId;
+  /** Countries targeted by a 'country' audience. */
+  phoneCountries?: PhoneCountryFilterId[];
+  /** Contacts unticked in the country review list — never sent to. */
+  excludedContactIds?: string[];
   /** Contacts carrying any of these tags are subtracted from the result. */
   excludeTagIds?: string[];
 }
@@ -207,12 +213,17 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         supabase,
         audience.customField
       );
-    } else if (audience.type === 'country' && audience.phoneCountry) {
-      contacts = await resolvePhoneCountryAudience(
-        supabase,
-        audience.phoneCountry,
-        audience.excludeTagIds ?? []
-      );
+    } else if (audience.type === 'country') {
+      // Same helper the review list uses, so the ticked list is exactly
+      // the set resolved here; unticked contacts are then dropped.
+      const excluded = new Set(audience.excludedContactIds ?? []);
+      contacts = (
+        await fetchCountryContacts(
+          supabase,
+          audienceCountries(audience),
+          audience.excludeTagIds ?? []
+        )
+      ).filter((c) => !excluded.has(c.id));
     } else if (audience.type === 'csv' && audience.csvContacts) {
       contacts = await upsertCsvContacts(supabase, audience.csvContacts);
     }
@@ -230,37 +241,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         .in('tag_id', audience.excludeTagIds);
       const excludedIds = new Set((excludeRows ?? []).map((r) => r.contact_id));
       contacts = contacts.filter((c) => !excludedIds.has(c.id));
-    }
-
-    return contacts;
-  }
-
-  async function resolvePhoneCountryAudience(
-    supabase: ReturnType<typeof createClient>,
-    country: PhoneCountryFilterId,
-    excludeTagIds: string[]
-  ): Promise<Contact[]> {
-    const pageSize = 500;
-    const contacts: Contact[] = [];
-    const phonePrefix = getPhoneCountryPrefix(country);
-
-    for (let offset = 0; ; offset += pageSize) {
-      const { data, error } = await supabase.rpc('filter_contacts', {
-        p_tag_ids: [],
-        p_phone_prefix: phonePrefix,
-        p_exclude_tag_ids: excludeTagIds,
-        p_search: null,
-        p_limit: pageSize,
-        p_offset: offset,
-      });
-
-      if (error) {
-        throw new Error(`Failed to fetch country contacts: ${error.message}`);
-      }
-
-      const rows = (data ?? []) as { contact: Contact }[];
-      contacts.push(...rows.map((row) => row.contact));
-      if (!data || data.length < pageSize) break;
     }
 
     return contacts;
@@ -445,7 +425,8 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             type: payload.audience.type,
             tagIds: payload.audience.tagIds,
             customField: payload.audience.customField,
-            phoneCountry: payload.audience.phoneCountry,
+            phoneCountries: audienceCountries(payload.audience),
+            excludedContactIds: payload.audience.excludedContactIds,
             excludeTagIds: payload.audience.excludeTagIds,
           },
           status: 'sending',

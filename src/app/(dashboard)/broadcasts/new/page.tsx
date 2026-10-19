@@ -40,7 +40,8 @@ export default function NewBroadcastPage() {
       value: string;
     };
     csvContacts?: { phone: string; name?: string }[];
-    phoneCountry?: PhoneCountryFilterId;
+    phoneCountries?: PhoneCountryFilterId[];
+    excludedContactIds?: string[];
     excludeTagIds?: string[];
   }>({ type: 'all' });
   const [variables, setVariables] = useState<
@@ -63,7 +64,8 @@ export default function NewBroadcastPage() {
           tagIds: audience.tagIds,
           customField: audience.customField,
           csvContacts: audience.csvContacts,
-          phoneCountry: audience.phoneCountry,
+          phoneCountries: audience.phoneCountries,
+          excludedContactIds: audience.excludedContactIds,
           excludeTagIds: audience.excludeTagIds,
         },
         variables,
@@ -118,7 +120,8 @@ export default function NewBroadcastPage() {
       audience_filter: {
         type: audience.type,
         tagIds: audience.tagIds,
-        phoneCountry: audience.phoneCountry,
+        phoneCountries: audience.phoneCountries,
+        excludedContactIds: audience.excludedContactIds,
       },
       whatsapp_config_id: fromNumberId || null,
       status: 'draft',

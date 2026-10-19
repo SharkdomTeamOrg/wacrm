@@ -3,15 +3,16 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { parseBroadcastCsv } from '@/lib/broadcast-csv';
-import { CustomField, Tag } from '@/types';
+import { Contact, CustomField, Tag } from '@/types';
 import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/hooks/use-can';
 import {
-  getPhoneCountryPrefix,
+  audienceCountries,
   PHONE_COUNTRY_FILTERS,
   type PhoneCountryFilterId,
 } from '@/lib/contacts/country-filters';
+import { fetchCountryContacts } from '@/lib/contacts/fetch-country-contacts';
 import { toast } from 'sonner';
 import {
   Users,
@@ -43,6 +44,9 @@ interface AudienceConfig {
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
   phoneCountry?: PhoneCountryFilterId;
+  phoneCountries?: PhoneCountryFilterId[];
+  /** Contacts unticked in the country review list. */
+  excludedContactIds?: string[];
   excludeTagIds?: string[];
 }
 
@@ -122,6 +126,74 @@ export function Step2SelectAudience({
   const [loadingFields, setLoadingFields] = useState(false);
   const [customFieldsLoadError, setCustomFieldsLoadError] = useState(false);
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
+
+  // ---- Phone Country: several countries + a tick-list review ----------
+  const selectedCountries = useMemo(() => audienceCountries(audience), [audience]);
+  const [countryContacts, setCountryContacts] = useState<Contact[]>([]);
+  const [loadingCountryContacts, setLoadingCountryContacts] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const excludedIds = useMemo(
+    () => new Set(audience.excludedContactIds ?? []),
+    [audience.excludedContactIds],
+  );
+  const countrySelectedCount = countryContacts.filter((c) => !excludedIds.has(c.id)).length;
+  const countryKey = selectedCountries.join(',');
+  const excludeTagKey = (audience.excludeTagIds ?? []).join(',');
+
+  useEffect(() => {
+    if (audience.type !== 'country' || !countryKey) {
+      setCountryContacts([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingCountryContacts(true);
+    fetchCountryContacts(
+      createClient(),
+      countryKey.split(',') as PhoneCountryFilterId[],
+      excludeTagKey ? excludeTagKey.split(',') : [],
+    )
+      .then((rows) => {
+        if (cancelled) return;
+        rows.sort((a, b) => (a.name || a.phone || '').localeCompare(b.name || b.phone || ''));
+        setCountryContacts(rows);
+      })
+      .catch((err) => {
+        console.error('Failed to load country contacts:', err);
+        if (!cancelled) {
+          setCountryContacts([]);
+          toast.error(t('selectAudience.errorEstimate'));
+        }
+      })
+      .finally(() => !cancelled && setLoadingCountryContacts(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [audience.type, countryKey, excludeTagKey, t]);
+
+  const visibleCountryContacts = useMemo(() => {
+    const q = countrySearch.trim().toLowerCase();
+    if (!q) return countryContacts;
+    return countryContacts.filter(
+      (c) =>
+        (c.name ?? '').toLowerCase().includes(q) || (c.phone ?? '').toLowerCase().includes(q),
+    );
+  }, [countryContacts, countrySearch]);
+
+  function toggleCountry(country: PhoneCountryFilterId) {
+    const next = selectedCountries.includes(country)
+      ? selectedCountries.filter((c) => c !== country)
+      : [...selectedCountries, country];
+    onUpdate({ ...audience, phoneCountry: undefined, phoneCountries: next });
+  }
+
+  function setContactsTicked(ids: string[], ticked: boolean) {
+    const next = new Set(excludedIds);
+    for (const id of ids) {
+      if (ticked) next.delete(id);
+      else next.add(id);
+    }
+    onUpdate({ ...audience, excludedContactIds: [...next] });
+  }
   const [loadingCount, setLoadingCount] = useState(false);
   // The picked file's name, shown back to the user. The parsed rows
   // themselves live on `audience.csvContacts` (owned by the wizard) so
@@ -216,17 +288,9 @@ export function Step2SelectAudience({
         else q = q.ilike('value', `%${value}%`);
         const { data } = await q;
         baseIds = new Set((data ?? []).map((r) => r.contact_id));
-      } else if (audience.type === 'country' && audience.phoneCountry) {
-        const { data, error } = await supabase.rpc('filter_contacts', {
-          p_tag_ids: [],
-          p_phone_prefix: getPhoneCountryPrefix(audience.phoneCountry),
-          p_exclude_tag_ids: audience.excludeTagIds ?? [],
-          p_search: null,
-          p_limit: 1,
-          p_offset: 0,
-        });
-        if (error) throw error;
-        setEstimatedCount(data?.length ? Number(data[0].total_count) : 0);
+      } else if (audience.type === 'country') {
+        // Counted from the review list (ticked contacts) instead.
+        setEstimatedCount(null);
         return;
       } else if (
         audience.type === 'csv' &&
@@ -276,7 +340,6 @@ export function Step2SelectAudience({
     audience.type,
     audience.tagIds,
     audience.customField,
-    audience.phoneCountry,
     audience.csvContacts,
     audience.excludeTagIds,
   ]);
@@ -352,8 +415,9 @@ export function Step2SelectAudience({
       !!audience.customField?.fieldId &&
       audience.customField.value.length > 0) ||
     (audience.type === 'country' &&
-      !!audience.phoneCountry &&
-      Object.hasOwn(PHONE_COUNTRY_FILTERS, audience.phoneCountry)) ||
+      selectedCountries.length > 0 &&
+      !loadingCountryContacts &&
+      countrySelectedCount > 0) ||
     (audience.type === 'csv' &&
       audience.csvContacts &&
       audience.csvContacts.length > 0);
@@ -399,6 +463,14 @@ export function Step2SelectAudience({
                     phoneCountry:
                       option.type === 'country'
                         ? audience.phoneCountry
+                        : undefined,
+                    phoneCountries:
+                      option.type === 'country'
+                        ? audience.phoneCountries
+                        : undefined,
+                    excludedContactIds:
+                      option.type === 'country'
+                        ? audience.excludedContactIds
                         : undefined,
                   })
                 }
@@ -549,15 +621,13 @@ export function Step2SelectAudience({
           <div className="flex flex-wrap gap-2">
             {(Object.keys(PHONE_COUNTRY_FILTERS) as PhoneCountryFilterId[]).map(
               (country) => {
-                const isSelected = audience.phoneCountry === country;
+                const isSelected = selectedCountries.includes(country);
                 return (
                   <button
                     key={country}
                     type="button"
                     aria-pressed={isSelected}
-                    onClick={() =>
-                      onUpdate({ ...audience, phoneCountry: country })
-                    }
+                    onClick={() => toggleCountry(country)}
                     className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-all ${
                       isSelected
                         ? 'border-primary/30 bg-primary/10 text-primary'
@@ -570,6 +640,89 @@ export function Step2SelectAudience({
               }
             )}
           </div>
+          <p className="text-muted-foreground mt-2 text-xs">
+            {t('selectAudience.multiCountryHint')}
+          </p>
+
+          {selectedCountries.length > 0 && (
+            <div className="border-border mt-4 space-y-2 border-t pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-foreground text-sm font-medium">
+                  {t('selectAudience.reviewRecipients')}
+                </p>
+                <span className="text-muted-foreground text-xs">
+                  {t('selectAudience.selectedOfTotal', {
+                    selected: countrySelectedCount,
+                    total: countryContacts.length,
+                  })}
+                </span>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                {t('selectAudience.reviewRecipientsHint')}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="search"
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                  placeholder={t('selectAudience.searchRecipients')}
+                  aria-label={t('selectAudience.searchRecipients')}
+                  className="border-border bg-muted text-foreground placeholder:text-muted-foreground min-w-0 flex-1 rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={visibleCountryContacts.length === 0}
+                  onClick={() => setContactsTicked(visibleCountryContacts.map((c) => c.id), true)}
+                >
+                  {t('selectAudience.selectAll')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={visibleCountryContacts.length === 0}
+                  onClick={() => setContactsTicked(visibleCountryContacts.map((c) => c.id), false)}
+                >
+                  {t('selectAudience.clearAll')}
+                </Button>
+              </div>
+              <div className="border-border max-h-80 overflow-y-auto rounded-md border">
+                {loadingCountryContacts ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="text-primary h-4 w-4 animate-spin" />
+                  </div>
+                ) : visibleCountryContacts.length === 0 ? (
+                  <p className="text-muted-foreground py-6 text-center text-xs">
+                    {t('selectAudience.noCountryContacts')}
+                  </p>
+                ) : (
+                  // ponytail: plain list, fine for a few thousand rows; virtualize if audiences grow past that
+                  visibleCountryContacts.map((c) => {
+                    const ticked = !excludedIds.has(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className="hover:bg-muted/50 border-border flex cursor-pointer items-center gap-3 border-b px-3 py-2 last:border-b-0"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={ticked}
+                          onChange={(e) => setContactsTicked([c.id], e.target.checked)}
+                          className="accent-primary h-4 w-4"
+                        />
+                        <span className="text-foreground min-w-0 flex-1 truncate text-sm">
+                          {c.name || c.phone}
+                        </span>
+                        <span className="text-muted-foreground shrink-0 text-xs">{c.phone}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -664,7 +817,30 @@ export function Step2SelectAudience({
         <p className="text-foreground mb-2 text-sm font-medium">
           {t('selectAudience.audienceSummary')}
         </p>
-        {loadingCount ? (
+        {audience.type === 'country' ? (
+          loadingCountryContacts ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="text-primary h-4 w-4 animate-spin" />
+              <span className="text-muted-foreground text-xs">
+                {t('selectAudience.calculating')}
+              </span>
+            </div>
+          ) : selectedCountries.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <Users className="text-primary h-4 w-4" />
+              <span className="text-foreground text-sm">
+                {countrySelectedCount.toLocaleString()}
+              </span>
+              <span className="text-muted-foreground text-xs">
+                estimated recipients
+              </span>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              {t('selectAudience.selectCountry')}
+            </p>
+          )
+        ) : loadingCount ? (
           <div className="flex items-center gap-2">
             <Loader2 className="text-primary h-4 w-4 animate-spin" />
             <span className="text-muted-foreground text-xs">

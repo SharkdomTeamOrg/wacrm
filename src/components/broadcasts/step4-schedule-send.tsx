@@ -19,9 +19,10 @@ import { useTranslations } from 'next-intl';
 import { useWhatsAppNumbers } from '@/hooks/use-whatsapp-numbers';
 import { flagForPhone, numberName } from '@/lib/whatsapp/number-label';
 import {
-  getPhoneCountryPrefix,
+  audienceCountries,
   type PhoneCountryFilterId,
 } from '@/lib/contacts/country-filters';
+import { fetchCountryContacts } from '@/lib/contacts/fetch-country-contacts';
 import { toast } from 'sonner';
 
 interface AudienceConfig {
@@ -29,6 +30,8 @@ interface AudienceConfig {
   tagIds?: string[];
   csvContacts?: { phone: string; name?: string }[];
   phoneCountry?: PhoneCountryFilterId;
+  phoneCountries?: PhoneCountryFilterId[];
+  excludedContactIds?: string[];
   excludeTagIds?: string[];
 }
 
@@ -93,20 +96,20 @@ export function Step4ScheduleSend({
           setEstimatedReach(uniqueIds.size);
         } else if (audience.type === 'csv' && audience.csvContacts) {
           setEstimatedReach(audience.csvContacts.length);
-        } else if (audience.type === 'country' && audience.phoneCountry) {
-          const { data, error } = await supabase.rpc('filter_contacts', {
-            p_tag_ids: [],
-            p_phone_prefix: getPhoneCountryPrefix(audience.phoneCountry),
-            p_exclude_tag_ids: audience.excludeTagIds ?? [],
-            p_search: null,
-            p_limit: 1,
-            p_offset: 0,
-          });
-          if (error) {
+        } else if (audience.type === 'country') {
+          // Same resolution the sender uses: selected countries minus
+          // excluded tags minus contacts unticked in the review list.
+          try {
+            const excluded = new Set(audience.excludedContactIds ?? []);
+            const rows = await fetchCountryContacts(
+              supabase,
+              audienceCountries(audience),
+              audience.excludeTagIds ?? [],
+            );
+            setEstimatedReach(rows.filter((c) => !excluded.has(c.id)).length);
+          } catch {
             toast.error(t('selectAudience.errorEstimate'));
             setEstimatedReach(0);
-          } else {
-            setEstimatedReach(data?.length ? Number(data[0].total_count) : 0);
           }
         } else {
           setEstimatedReach(0);
@@ -126,9 +129,11 @@ export function Step4ScheduleSend({
         ? t('scheduleSend.audienceTags')
         : audience.type === 'csv'
           ? t('scheduleSend.audienceCsv')
-          : audience.type === 'country' && audience.phoneCountry
+          : audience.type === 'country' && audienceCountries(audience).length > 0
             ? t('scheduleSend.audienceCountry', {
-                country: t(`selectAudience.countries.${audience.phoneCountry}`),
+                country: audienceCountries(audience)
+                  .map((c) => t(`selectAudience.countries.${c}`))
+                  .join(', '),
               })
             : t('scheduleSend.audienceField');
 

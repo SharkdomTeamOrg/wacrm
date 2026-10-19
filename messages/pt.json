@@ -767,7 +767,7 @@
           },
           "missingVariable": {
             "title": "Variável vazia",
-            "advice": "Uma variável do modelo ficou vazia para estes contatos, geralmente sem nome salvo. Preencha o campo do contato ou defina um valor alternativo ao criar a transmissão e depois tente as falhas novamente."
+            "advice": "Uma variável do modelo ficou vazia para estes contatos, geralmente sem nome salvo. Tentar novamente reenvia o mesmo valor vazio; envie uma nova transmissão para eles com um valor alternativo."
           },
           "templateProblem": {
             "title": "Problema no modelo",

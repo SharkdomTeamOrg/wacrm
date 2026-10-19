@@ -767,7 +767,7 @@
           },
           "missingVariable": {
             "title": "Variable vacía",
-            "advice": "Una variable de la plantilla quedó vacía para estos contactos, normalmente por no tener nombre. Completa el campo del contacto o define un valor alternativo al crear la difusión y luego usa Reintentar fallidos."
+            "advice": "Una variable de la plantilla quedó vacía para estos contactos, normalmente por no tener nombre. Reintentar reenvía el mismo valor vacío; envíales una nueva difusión con un valor alternativo."
           },
           "templateProblem": {
             "title": "Problema con la plantilla",

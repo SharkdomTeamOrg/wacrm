@@ -767,7 +767,7 @@
           },
           "missingVariable": {
             "title": "Missing variable",
-            "advice": "A template variable was empty for these contacts — usually no name saved. Fill in the contact field, or set an “If empty, use” fallback when creating the broadcast, then Retry failed."
+            "advice": "A template variable was empty for these contacts — usually no name saved. Retrying resends the same empty value, so send a new broadcast to them with an “If empty, use” fallback set."
           },
           "templateProblem": {
             "title": "Template problem",

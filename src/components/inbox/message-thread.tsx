@@ -785,6 +785,22 @@ export function MessageThread({
     [contactDisplayName],
   );
 
+  // Schedule / cancel the 24h retry of a template Meta refused with 131049.
+  const handleRetryAction = async (messageId: string, action: "schedule" | "cancel") => {
+    const res = await fetch(`/api/inbox/messages/${messageId}/retry`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(data.error || t("retryActionFailed"));
+      return;
+    }
+    onUpdateMessage(messageId, { retry_status: data.retry_status, retry_at: data.retry_at });
+    toast.success(action === "schedule" ? t("retryScheduledToast") : t("retryCancelledToast"));
+  };
+
   const handleStartReply = useCallback(
     (msg: Message) => {
       setReplyTo({
@@ -1167,6 +1183,7 @@ export function MessageThread({
                       >
                         <MessageBubble
                           message={msg}
+                          onRetryAction={(action) => void handleRetryAction(msg.id, action)}
                           reply={reply}
                           reactions={msgReactions}
                           currentUserId={user?.id}

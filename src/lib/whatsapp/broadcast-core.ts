@@ -325,6 +325,7 @@ export async function deliverBroadcast(
           templateName: plan.templateName,
           templateRow: plan.templateRow,
           templateParams: recipient.params,
+          templateLanguage: plan.templateLanguage,
           whatsappMessageId: sentMessageId,
         });
       } catch (error) {

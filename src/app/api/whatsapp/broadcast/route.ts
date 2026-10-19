@@ -261,6 +261,8 @@ export async function POST(request: Request) {
               templateName: template_name,
               templateRow,
               templateParams: recipient.params ?? [],
+              templateLanguage: resolvedTemplate.language,
+              messageParams: recipient.messageParams,
               whatsappMessageId: sentMessageId,
             })
           } catch (error) {

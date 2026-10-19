@@ -235,11 +235,30 @@ export type ContentType =
   | 'interactive';
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
+/** Stored on template message rows (migration 050) for exact retries. */
+export interface TemplateSendRecord {
+  language: string;
+  /** Positional body values. */
+  params?: string[];
+  /** Structured header/body/button values (SendTimeParams shape). */
+  messageParams?: unknown;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
   /** "Delete for me" (migration 046): hidden from the inbox, row kept. */
   deleted_at?: string | null;
+  /** Auto-retry of a template Meta refused with 131049 (migration 050). */
+  retry_status?: 'scheduled' | 'running' | 'sent' | 'failed' | 'cancelled' | null;
+  retry_at?: string | null;
+  retry_error?: string | null;
+  /** Set on a resent message: the original it retried. */
+  retry_of?: string | null;
+  /** Set on the original: the resent message. */
+  retry_message_id?: string | null;
+  /** What a template send carried, so a retry can repeat it exactly. */
+  template_send?: TemplateSendRecord | null;
   sender_type: SenderType;
   sender_id?: string;
   content_type: ContentType;

@@ -122,6 +122,41 @@ export function WhatsAppConfig() {
   // UPDATE to admins, hence the canEditSettings gate below; without it
   // a viewer's toggle would match zero rows and appear to work.
   const [mirrorMedia, setMirrorMedia] = useState(true);
+  // Account-wide: resend templates Meta refused with 131049 once, 24h
+  // later (migration 050). Loaded from /api/account/delivery.
+  const [autoRetry, setAutoRetry] = useState<boolean | null>(null);
+  const [savingAutoRetry, setSavingAutoRetry] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/account/delivery')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setAutoRetry(d.auto_retry_marketing_limit !== false);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleToggleAutoRetry(next: boolean) {
+    const previous = autoRetry;
+    setAutoRetry(next);
+    setSavingAutoRetry(true);
+    try {
+      const res = await fetch('/api/account/delivery', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auto_retry_marketing_limit: next }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setAutoRetry(previous);
+      toast.error(t('autoRetrySaveFailed'));
+    } finally {
+      setSavingAutoRetry(false);
+    }
+  }
   const [savingMirror, setSavingMirror] = useState(false);
 
   // True once /register has succeeded on Meta's side (timestamp set
@@ -1068,6 +1103,20 @@ export function WhatsAppConfig() {
                   aria-label={t('mirrorInbound')}
                 />
               </div>
+              {autoRetry !== null && (
+                <div className="mt-3 flex items-center justify-between gap-4 rounded-md border border-border p-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{t('autoRetry')}</p>
+                    <p className="text-xs text-muted-foreground">{t('autoRetryDesc')}</p>
+                  </div>
+                  <Switch
+                    checked={autoRetry}
+                    onCheckedChange={handleToggleAutoRetry}
+                    disabled={savingAutoRetry || !canEditSettings}
+                    aria-label={t('autoRetry')}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

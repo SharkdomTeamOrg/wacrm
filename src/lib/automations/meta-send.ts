@@ -237,6 +237,10 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
     content_type,
     content_text,
     template_name,
+    template_send:
+      input.kind === 'template'
+        ? { language: input.language, params: input.params ?? [], messageParams: null }
+        : null,
     message_id: waMessageId,
     status: 'sent',
   })

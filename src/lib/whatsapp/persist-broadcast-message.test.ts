@@ -63,6 +63,7 @@ describe('persistBroadcastMessage', () => {
         created_at: '',
       },
       templateParams: ['Asha', 'order'],
+      templateLanguage: 'en_US',
       whatsappMessageId: 'wamid-1',
     });
 
@@ -73,6 +74,10 @@ describe('persistBroadcastMessage', () => {
       'user-1',
       'config-1'
     );
+    // recorded so a 131049 auto-retry can resend it identically
+    expect(writes.message).toMatchObject({
+      template_send: { language: 'en_US', params: ['Asha', 'order'] },
+    });
     expect(writes.message).toMatchObject({
       conversation_id: 'conversation-1',
       sender_type: 'agent',
@@ -100,6 +105,7 @@ describe('persistBroadcastMessage', () => {
         templateName: 'welcome',
         templateRow: null,
         templateParams: [],
+        templateLanguage: 'en_US',
         whatsappMessageId: 'wamid-1',
       })
     ).rejects.toThrow('Failed to save broadcast message: write failed');

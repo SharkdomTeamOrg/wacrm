@@ -797,6 +797,14 @@
         "errorLoad": "Falha ao carregar os modelos"
       },
       "selectAudience": {
+        "multiCountryHint": "Escolha um ou mais países.",
+        "reviewRecipients": "Destinatários",
+        "reviewRecipientsHint": "Todos os contatos dos países selecionados estão incluídos. Desmarque quem não deve receber esta transmissão.",
+        "selectedOfTotal": "{selected} de {total} selecionados",
+        "searchRecipients": "Buscar por nome ou telefone",
+        "selectAll": "Selecionar todos",
+        "clearAll": "Limpar todos",
+        "noCountryContacts": "Nenhum contato encontrado para os países selecionados.",
         "title": "Selecionar público",
         "subtitle": "Escolha quem receberá este disparo.",
         "method": {

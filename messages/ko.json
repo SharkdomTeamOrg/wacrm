@@ -797,6 +797,14 @@
         "errorLoad": "템플릿을 불러오지 못했습니다"
       },
       "selectAudience": {
+        "multiCountryHint": "하나 이상의 국가를 선택하세요.",
+        "reviewRecipients": "수신자",
+        "reviewRecipientsHint": "선택한 국가의 모든 연락처가 포함됩니다. 이 브로드캐스트를 받지 않아야 할 연락처는 선택 해제하세요.",
+        "selectedOfTotal": "{total}명 중 {selected}명 선택됨",
+        "searchRecipients": "이름 또는 전화번호로 검색",
+        "selectAll": "모두 선택",
+        "clearAll": "모두 해제",
+        "noCountryContacts": "선택한 국가에 연락처가 없습니다.",
         "title": "대상 선택",
         "subtitle": "이 브로드캐스트를 받을 대상을 선택하세요.",
         "method": {

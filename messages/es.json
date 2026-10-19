@@ -797,6 +797,14 @@
         "errorLoad": "Error al cargar las plantillas"
       },
       "selectAudience": {
+        "multiCountryHint": "Elige uno o más países.",
+        "reviewRecipients": "Destinatarios",
+        "reviewRecipientsHint": "Se incluye a todos los contactos de los países seleccionados. Desmarca a quien no deba recibir esta difusión.",
+        "selectedOfTotal": "{selected} de {total} seleccionados",
+        "searchRecipients": "Buscar por nombre o teléfono",
+        "selectAll": "Seleccionar todo",
+        "clearAll": "Quitar todo",
+        "noCountryContacts": "No hay contactos para los países seleccionados.",
         "title": "Seleccionar audiencia",
         "subtitle": "Elige quién recibirá esta difusión.",
         "method": {

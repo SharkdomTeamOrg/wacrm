@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  audienceCountries,
   getPhoneCountryPrefix,
   PHONE_COUNTRY_FILTERS,
 } from './country-filters';
@@ -17,5 +18,15 @@ describe('phone country filters', () => {
       'northAmerica',
       'uk',
     ]);
+  });
+
+  it('reads multi-country audiences and still honours old single-country drafts', () => {
+    expect(audienceCountries({ phoneCountries: ['india', 'uk'] })).toEqual(['india', 'uk']);
+    expect(audienceCountries({ phoneCountry: 'northAmerica' })).toEqual(['northAmerica']);
+    // multi wins over the legacy field; duplicates and unknown ids drop out
+    expect(
+      audienceCountries({ phoneCountries: ['uk', 'uk', 'mars'], phoneCountry: 'india' }),
+    ).toEqual(['uk']);
+    expect(audienceCountries({})).toEqual([]);
   });
 });

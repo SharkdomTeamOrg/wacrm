@@ -12,6 +12,7 @@ import {
   type PhoneCountryFilterId,
 } from '@/lib/contacts/country-filters';
 import { fetchCountryContacts } from '@/lib/contacts/fetch-country-contacts';
+import { isMarketingTemplate } from '@/lib/contacts/marketing-opt-out';
 
 export type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
@@ -66,6 +67,44 @@ interface BroadcastPayload {
   whatsappConfigId?: string | null;
 }
 
+/** What step 4 shows before sending — same audience the send resolves. */
+export interface PresendCheck {
+  total: number;
+  /** Opted out of marketing — skipped when the template is Marketing. */
+  optedOut: number;
+  /** Per variable with no fallback: contacts whose value is blank. */
+  missing: { key: string; count: number }[];
+}
+
+export type PresendPayload = Pick<BroadcastPayload, 'template' | 'audience' | 'variables'>;
+
+/**
+ * Pure counting half of the pre-send check. Opted-out contacts are left
+ * out of the missing-value counts since they won't be sent anyway.
+ */
+export function presendCheck(
+  contacts: Contact[],
+  variables: Record<string, VariableMapping>,
+  customIndex: CustomValueIndex,
+  marketing: boolean
+): PresendCheck {
+  const sendable = marketing ? contacts.filter((c) => !c.marketing_opt_out_at) : contacts;
+  const missing = Object.keys(variables)
+    .filter((key) => {
+      const v = variables[key];
+      return v.type !== 'static' && v.value && !v.fallback?.trim();
+    })
+    .sort((a, b) => Number(a) - Number(b))
+    .map((key) => ({
+      key,
+      count: sendable.filter(
+        (c) => !resolveVariables({ [key]: variables[key] }, c, customIndex.get(c.id))[0]?.trim()
+      ).length,
+    }))
+    .filter((m) => m.count > 0);
+  return { total: contacts.length, optedOut: contacts.length - sendable.length, missing };
+}
+
 export type TestSendPayload = Pick<
   BroadcastPayload,
   'template' | 'variables' | 'headerMediaUrl' | 'whatsappConfigId'
@@ -73,6 +112,8 @@ export type TestSendPayload = Pick<
 
 interface UseBroadcastSendingReturn {
   createAndSendBroadcast: (payload: BroadcastPayload) => Promise<string>;
+  /** Count reach + would-fail/skipped contacts without sending or writing. */
+  checkAudience: (payload: PresendPayload) => Promise<PresendCheck>;
   /** Send the template once to `phone`; resolves to an error message or null. */
   sendTestMessage: (payload: TestSendPayload, phone: string) => Promise<string | null>;
   isProcessing: boolean;
@@ -199,7 +240,11 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  async function resolveAudience(audience: AudienceConfig): Promise<Contact[]> {
+  // `dryRun` skips creating CSV contacts — the pre-send check must not write.
+  async function resolveAudience(
+    audience: AudienceConfig,
+    { dryRun = false } = {}
+  ): Promise<Contact[]> {
     const supabase = createClient();
 
     let contacts: Contact[] = [];
@@ -250,7 +295,11 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         )
       ).filter((c) => !excluded.has(c.id));
     } else if (audience.type === 'csv' && audience.csvContacts) {
-      contacts = await upsertCsvContacts(supabase, audience.csvContacts);
+      // ponytail: dry run treats CSV rows as new contacts, so opt-outs of
+      // existing ones aren't counted until send; look them up if it matters.
+      contacts = dryRun
+        ? audience.csvContacts.map((c) => ({ id: '', phone: c.phone, name: c.name }) as Contact)
+        : await upsertCsvContacts(supabase, audience.csvContacts);
     }
 
     // Apply exclude tags (works across all contact-derived audience
@@ -727,5 +776,24 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     return result?.status === 'sent' ? null : result?.error || 'Test send failed';
   }
 
-  return { createAndSendBroadcast, sendTestMessage, isProcessing, progress };
+  async function checkAudience(payload: PresendPayload): Promise<PresendCheck> {
+    const contacts = await resolveAudience(payload.audience, { dryRun: true });
+    const needsCustom = Object.values(payload.variables).some(
+      (v) => v.type === 'custom_field' && !v.fallback?.trim()
+    );
+    const customIndex = needsCustom
+      ? await fetchCustomValueIndex(
+          createClient(),
+          contacts.map((c) => c.id).filter(Boolean)
+        )
+      : new Map();
+    return presendCheck(
+      contacts,
+      payload.variables,
+      customIndex,
+      isMarketingTemplate(payload.template)
+    );
+  }
+
+  return { createAndSendBroadcast, checkAudience, sendTestMessage, isProcessing, progress };
 }

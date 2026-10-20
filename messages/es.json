@@ -994,7 +994,10 @@
         "testHint": "Envía este mensaje exacto a un número primero para revisar el texto, las variables y el encabezado en tu teléfono. No cuenta en la difusión.",
         "testPlaceholder": "+34 600 123 456",
         "testSend": "Enviar prueba",
-        "testSent": "Prueba enviada. Revisa WhatsApp en ese teléfono."
+        "testSent": "Prueba enviada. Revisa WhatsApp en ese teléfono.",
+        "warnMissing": "{count, plural, =1 {1 contacto no tiene} other {# contactos no tienen}} valor para {variable} ni valor alternativo. Meta {count, plural, =1 {lo rechazará} other {los rechazará}}.",
+        "addFallback": "Añadir un valor alternativo en Personalizar",
+        "warnOptedOut": "{count, plural, =1 {1 contacto se dio} other {# contactos se dieron}} de baja del marketing y se omitirán."
       }
     }
   },

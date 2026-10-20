@@ -26,7 +26,7 @@ export default function NewBroadcastPage() {
   const router = useRouter();
   const t = useTranslations('Broadcasts.new');
   const { accountId } = useAuth();
-  const { createAndSendBroadcast, sendTestMessage, isProcessing, progress } =
+  const { createAndSendBroadcast, checkAudience, sendTestMessage, isProcessing, progress } =
     useBroadcastSending();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -236,6 +236,8 @@ export default function NewBroadcastPage() {
               template={template}
               audience={audience}
               onSend={handleSend}
+              variables={variables}
+              checkAudience={checkAudience}
               onSendTest={(phone) =>
                 sendTestMessage(
                   { template, variables, headerMediaUrl, whatsappConfigId: fromNumberId || null },

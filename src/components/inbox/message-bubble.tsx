@@ -24,6 +24,7 @@ import {
 } from "./message-media";
 import { InteractivePreview } from "@/components/interactive/interactive-preview";
 import { useTranslations } from "next-intl";
+import { useFailureText } from "@/hooks/use-failure-text";
 import { isRetryable } from "@/lib/whatsapp/marketing-retry-rules";
 
 interface MessageBubbleProps {
@@ -48,7 +49,7 @@ interface MessageBubbleProps {
  * predates migration 042 / Meta sent no reason. Shared by the status
  * icon's tooltip and the line under the bubble.
  */
-function failureReason(message: Message): string | null {
+function rawFailure(message: Message): string | null {
   if (message.status !== "failed" || !message.error_title) return null;
   return message.error_details
     ? `${message.error_title} — ${message.error_details}`
@@ -303,7 +304,11 @@ export function MessageBubble({
 
   const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
   const time = format(new Date(message.created_at), "HH:mm");
-  const failure = isAgent ? failureReason(message) : null;
+  const explainFailure = useFailureText();
+  const tErr = useTranslations("MessageErrors");
+  const raw = isAgent ? rawFailure(message) : null;
+  const failure = raw ? explainFailure(raw, message.error_code) : null;
+  const failureTooltip = failure ? tErr("metaSays", { message: failure.raw }) : null;
 
   // Row alignment + width cap are owned by <MessageActions> so its hover
   // group matches the bubble's content area, not the full row.
@@ -366,16 +371,21 @@ export function MessageBubble({
           >
             {time}
           </span>
-          {isAgent && <StatusIcon status={message.status} title={failure} />}
+          {isAgent && <StatusIcon status={message.status} title={failureTooltip} />}
         </div>
       </div>
       {failure && (
-        <p
-          className="mt-0.5 px-1 text-[10px] leading-tight text-muted-foreground"
-          title={failure}
+        <div
+          className="mt-0.5 max-w-xs px-1 text-[10px] leading-tight"
+          title={failureTooltip ?? undefined}
         >
-          {t("notDelivered")}: {failure}
-        </p>
+          <p className="font-medium text-destructive">
+            {t("notDelivered")}: {failure.title}
+          </p>
+          {failure.advice && (
+            <p className="mt-0.5 text-muted-foreground">{failure.advice}</p>
+          )}
+        </div>
       )}
       {isAgent && message.content_type === "template" && (
         <RetryNote message={message} onRetryAction={onRetryAction} t={t} />

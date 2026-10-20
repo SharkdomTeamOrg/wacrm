@@ -25,7 +25,7 @@ import {
   type BroadcastPlan,
 } from '@/lib/whatsapp/broadcast-core';
 import { decrypt } from '@/lib/whatsapp/encryption';
-import { skipOnImmediateRetry } from '@/lib/whatsapp/broadcast-failures';
+import { skipOnImmediateRetry } from '@/lib/whatsapp/message-failures';
 import { resolveTemplateRow } from '@/lib/whatsapp/template-body';
 import { sanitizePhoneForMeta, isValidE164 } from '@/lib/whatsapp/phone-utils';
 

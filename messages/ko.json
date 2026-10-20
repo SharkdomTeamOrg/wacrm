@@ -213,8 +213,6 @@
       "yesterday": "어제",
       "customer": "고객",
       "unknown": "알 수 없음",
-      "sendFailed": "전송 실패: {reason}",
-      "sendTemplateFailed": "템플릿 전송 실패: {reason}",
       "waitForSending": "메시지 전송이 끝날 때까지 기다려 주세요",
       "reactionFailed": "반응 추가 실패: {reason}",
       "assignmentUpdateFailed": "담당자 변경에 실패했습니다",
@@ -772,6 +770,26 @@
           "templateProblem": {
             "title": "템플릿 문제",
             "advice": "변수가 맞지 않거나 템플릿이 일시 중지, 비활성화되었거나 이 언어로 승인되지 않았습니다. 설정 → 템플릿에서 확인한 뒤 재시도하세요."
+          },
+          "outsideWindow": {
+            "title": "24시간 창이 닫힘",
+            "advice": "24시간 창 밖에서는 승인된 템플릿만 보낼 수 있습니다. 이 브로드캐스트가 승인된 템플릿을 사용했는지 확인하세요."
+          },
+          "mediaProblem": {
+            "title": "헤더 파일을 보낼 수 없음",
+            "advice": "WhatsApp이 헤더 파일을 가져오거나 받지 못했습니다. 링크가 공개되어 있고 형식과 크기가 허용되는지 확인한 후 재시도하세요."
+          },
+          "policyBlock": {
+            "title": "WhatsApp에서 차단됨",
+            "advice": "Meta가 이 번호의 발송을 제한하고 있습니다(스팸 신고, 정책 또는 국가 규정). 더 보내기 전에 WhatsApp Manager에서 상태를 확인하세요."
+          },
+          "metaTemporary": {
+            "title": "Meta 일시적 문제",
+            "advice": "WhatsApp에 일시적인 문제가 있었습니다. 몇 분 후 실패 항목 재시도를 사용하세요."
+          },
+          "network": {
+            "title": "연결이 끊김",
+            "advice": "연결이 끊겨 전송이 완료되지 않았습니다. 실패 항목 재시도를 사용하세요."
           },
           "rateLimit": {
             "title": "너무 빠르게 전송됨",
@@ -2240,5 +2258,74 @@
   },
   "DashboardShell": {
     "loading": "불러오는 중..."
+  },
+  "MessageErrors": {
+    "metaSays": "WhatsApp 메시지: {message}",
+    "reasons": {
+      "marketingLimit": {
+        "title": "Meta 마케팅 한도",
+        "advice": "이 사람은 모든 비즈니스의 마케팅 메시지에 대한 Meta 한도에 도달했습니다. 최소 24시간 기다리세요. 설정이 켜져 있으면 wacrm이 한 번 자동으로 재시도합니다."
+      },
+      "userStoppedMarketing": {
+        "title": "마케팅 수신을 끔",
+        "advice": "WhatsApp에서 귀하의 마케팅 메시지를 받지 않기로 했습니다. 유틸리티 템플릿과 일반 답장은 계속 보낼 수 있습니다."
+      },
+      "undeliverable": {
+        "title": "전달할 수 없음",
+        "advice": "번호가 WhatsApp을 사용하지 않거나, 오래된 앱 버전이거나, 최신 약관에 동의하지 않았을 수 있습니다. 다시 보내도 대개 도움이 되지 않습니다."
+      },
+      "experiment": {
+        "title": "Meta 실험으로 보류됨",
+        "advice": "Meta가 실험의 일환으로 일부 마케팅 메시지를 보류하고 있습니다. 수정할 것은 없습니다."
+      },
+      "missingVariable": {
+        "title": "템플릿 변수가 비어 있음",
+        "advice": "템플릿 변수 중 하나에 값이 없었습니다(대개 이름 누락). 값을 채우고 다시 보내세요."
+      },
+      "templateProblem": {
+        "title": "템플릿 문제",
+        "advice": "변수가 맞지 않거나 템플릿이 일시 중지, 비활성화 또는 이 언어로 승인되지 않았습니다. 설정 → 템플릿을 확인하세요."
+      },
+      "outsideWindow": {
+        "title": "24시간 창이 닫힘",
+        "advice": "최근 24시간 동안 메시지를 보내지 않은 사용자에게는 승인된 템플릿만 보낼 수 있습니다. 템플릿을 보내세요."
+      },
+      "mediaProblem": {
+        "title": "파일을 보낼 수 없음",
+        "advice": "WhatsApp이 이 파일을 사용할 수 없습니다. 형식과 크기(이미지 5MB, 동영상 16MB, 문서 100MB까지)를 확인하고 다시 시도하세요."
+      },
+      "policyBlock": {
+        "title": "WhatsApp에서 차단됨",
+        "advice": "Meta가 이 번호의 발송을 제한하고 있습니다(스팸 신고, 정책 또는 국가 규정). WhatsApp Manager에서 번호 상태를 확인하세요."
+      },
+      "metaTemporary": {
+        "title": "Meta 일시적 문제",
+        "advice": "WhatsApp에 일시적인 문제가 있었습니다. 몇 분 후 다시 시도하세요."
+      },
+      "network": {
+        "title": "서버에 연결할 수 없음",
+        "advice": "메시지가 전송되기 전에 연결이 끊겼습니다. 인터넷을 확인하고 다시 시도하세요."
+      },
+      "rateLimit": {
+        "title": "너무 빠르게 발송함",
+        "advice": "Meta가 이 번호의 발송 속도를 제한했습니다. 1분 후 다시 시도하세요."
+      },
+      "invalidNumber": {
+        "title": "잘못된 전화번호",
+        "advice": "연락처 번호 형식이 잘못되었거나 국가 코드(예: +82…)가 없습니다. 연락처에서 수정한 후 다시 보내세요."
+      },
+      "authExpired": {
+        "title": "WhatsApp 연결 만료",
+        "advice": "액세스 토큰이 잘못되었거나 만료되었습니다. 관리자가 설정 → WhatsApp에서 업데이트해야 합니다."
+      },
+      "accountIssue": {
+        "title": "WhatsApp 계정 문제",
+        "advice": "Meta가 계정 또는 번호 문제(잠김, 결제, 미등록)를 보고했습니다. WhatsApp Manager를 확인하세요."
+      },
+      "other": {
+        "title": "전송되지 않음",
+        "advice": ""
+      }
+    }
   }
 }

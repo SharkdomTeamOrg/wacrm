@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { failureCode, failureReason, groupFailures } from './broadcast-failures';
+import { failureCode, failureReason, groupFailures } from './message-failures';
 
 describe('failureCode', () => {
   it('reads the code from webhook and send-error shapes', () => {
@@ -43,8 +43,26 @@ describe('groupFailures', () => {
     ]);
     expect(groups).toEqual([
       { reason: 'marketingLimit', count: 2, codes: [131049] },
-      { reason: 'other', count: 2, codes: [100, 368] },
       { reason: 'undeliverable', count: 1, codes: [131026] },
+      { reason: 'policyBlock', count: 1, codes: [368] },
+      { reason: 'other', count: 1, codes: [100] },
     ]);
+  });
+});
+
+describe('failureReason for 1:1 chat errors', () => {
+  it.each([
+    ['(#131047) Re-engagement message', 'outsideWindow'],
+    ['(#131053) Media upload error', 'mediaProblem'],
+    ['(#368) Temporarily blocked for policy violations', 'policyBlock'],
+    ['(#131000) Something went wrong', 'metaTemporary'],
+    ['(#131009) Parameter value is not valid', 'templateProblem'],
+    ['Failed to fetch', 'network'],
+    ['Invalid phone number format', 'invalidNumber'],
+  ])('%j → %s', (msg, reason) => expect(failureReason(msg)).toBe(reason));
+
+  it('prefers a structured code over the text', () => {
+    expect(failureReason('Meta API error: Re-engagement message', 131047)).toBe('outsideWindow');
+    expect(failureReason('Re-engagement message')).toBe('other');
   });
 });

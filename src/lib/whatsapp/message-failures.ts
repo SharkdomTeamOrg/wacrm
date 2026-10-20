@@ -1,7 +1,6 @@
-// Group a broadcast's failed recipients by *why* they failed, so the
-// detail page can say "12 failed — Meta's marketing limit (will
-// auto-retry)" instead of a wall of raw error strings. Pure; the UI
-// translates each reason key.
+// Why a WhatsApp send failed, as a reason key the UI translates into a
+// plain title + what to do. Used by the broadcast report (grouped) and
+// the inbox (one bubble / one toast). Pure.
 //
 // Recipient error_message comes in two shapes:
 //   - "[131049] Title: details"  — async failure from the status webhook
@@ -15,7 +14,12 @@ export const FAILURE_REASONS = [
   'undeliverable', // 131026 — not on WhatsApp / can't receive
   'experiment', // 130472 — Meta marketing experiment holdout
   'missingVariable', // 131008 — a template variable was empty (e.g. no name)
-  'templateProblem', // 132xxx — template params/approval/paused/disabled
+  'templateProblem', // 132xxx / 131009 — template params/approval/paused/disabled
+  'outsideWindow', // 131047 — 24h customer-service window closed
+  'mediaProblem', // 131051 / 131052 / 131053 — file type, download or upload
+  'policyBlock', // 368 / 131048 / 130497 — spam, policy or country restriction
+  'metaTemporary', // 1 / 2 / 131000 / 131016 / 133004 — Meta-side hiccup
+  'network', // our request never completed (offline, timeout)
   'rateLimit', // 130429 / 131056 / 80007 — sending too fast
   'invalidNumber', // local validation / 131030 / 1013
   'authExpired', // 190 — token expired or revoked
@@ -31,20 +35,36 @@ export function failureCode(errorMessage: string | null | undefined): number | n
   return m ? Number(m[1] ?? m[2]) : null
 }
 
-export function failureReason(errorMessage: string | null | undefined): FailureReason {
-  const code = failureCode(errorMessage)
+/**
+ * `code` wins when the caller has it structured (messages.error_code, the
+ * send route's meta_code); otherwise it's parsed out of the text.
+ */
+export function failureReason(
+  errorMessage: string | null | undefined,
+  knownCode?: number | null,
+): FailureReason {
+  const code = knownCode ?? failureCode(errorMessage)
   const text = (errorMessage ?? '').toLowerCase()
   if (code === 131049) return 'marketingLimit'
   if (code === 131050 || /opted out of marketing/.test(text)) return 'userStoppedMarketing'
   if (code === 131008) return 'missingVariable'
   if (code === 131026) return 'undeliverable'
   if (code === 130472) return 'experiment'
-  if (code !== null && code >= 132000 && code < 133000) return 'templateProblem'
+  if (code === 131009 || (code !== null && code >= 132000 && code < 133000)) return 'templateProblem'
+  if (code === 131047) return 'outsideWindow'
+  if (code === 131051 || code === 131052 || code === 131053) return 'mediaProblem'
+  if (code === 368 || code === 131048 || code === 130497) return 'policyBlock'
+  if (code === 1 || code === 2 || code === 131000 || code === 131016 || code === 133004) {
+    return 'metaTemporary'
+  }
   if (code === 130429 || code === 131056 || code === 80007) return 'rateLimit'
   if (code === 190 || /access token|oauth/.test(text)) return 'authExpired'
-  if (code === 131031 || code === 131042 || code === 131045) return 'accountIssue'
+  if (code === 131031 || code === 131042 || code === 131045 || code === 133010) return 'accountIssue'
   if (code === 131030 || code === 1013 || /invalid phone|phone number format/.test(text)) {
     return 'invalidNumber'
+  }
+  if (code === null && /failed to fetch|networkerror|network error|load failed|timed? ?out/.test(text)) {
+    return 'network'
   }
   return 'other'
 }

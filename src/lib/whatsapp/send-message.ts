@@ -27,6 +27,7 @@ import {
   sendMediaMessage,
   sendInteractiveButtons,
   sendInteractiveList,
+  MetaApiError,
   type MediaKind,
 } from '@/lib/whatsapp/meta-api';
 import {
@@ -65,11 +66,14 @@ export const VALID_MESSAGE_TYPES = [
 export class SendMessageError extends Error {
   readonly code: string;
   readonly status: number;
-  constructor(code: string, message: string, status: number) {
+  /** Meta's numeric error code when Meta refused the send. */
+  readonly metaCode: number | null;
+  constructor(code: string, message: string, status: number, metaCode: number | null = null) {
     super(message);
     this.name = 'SendMessageError';
     this.code = code;
     this.status = status;
+    this.metaCode = metaCode;
   }
 }
 
@@ -441,7 +445,12 @@ export async function sendMessageToConversation(
     const message =
       err instanceof Error ? err.message : 'Unknown Meta API error';
     console.error('[send-message] Meta send failed for all variants:', message);
-    throw new SendMessageError('meta_error', `Meta API error: ${message}`, 502);
+    throw new SendMessageError(
+      'meta_error',
+      `Meta API error: ${message}`,
+      502,
+      err instanceof MetaApiError ? err.code : null
+    );
   }
 
   if (hasValidPhone && workingPhone !== sanitizedPhone) {

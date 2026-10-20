@@ -994,7 +994,10 @@
         "testHint": "Sends this exact message to one number first, so you can check the text, variables and header on your phone. It isn't counted in the broadcast.",
         "testPlaceholder": "+1 555 123 4567",
         "testSend": "Send test",
-        "testSent": "Test sent. Check WhatsApp on that phone."
+        "testSent": "Test sent. Check WhatsApp on that phone.",
+        "warnMissing": "{count, plural, =1 {1 contact has} other {# contacts have}} no value for {variable} and no fallback. Meta will reject {count, plural, =1 {it} other {them}}.",
+        "addFallback": "Add a fallback in Personalize",
+        "warnOptedOut": "{count, plural, =1 {1 contact has} other {# contacts have}} opted out of marketing and will be skipped."
       }
     }
   },

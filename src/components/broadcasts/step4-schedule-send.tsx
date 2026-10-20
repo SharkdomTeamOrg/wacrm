@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { MessageTemplate } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,28 +13,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Send, Loader2, Users, Save, FlaskConical, Check } from 'lucide-react';
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  Users,
+  Save,
+  FlaskConical,
+  Check,
+  AlertTriangle,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useWhatsAppNumbers } from '@/hooks/use-whatsapp-numbers';
 import { flagForPhone, numberName } from '@/lib/whatsapp/number-label';
-import {
-  audienceCountries,
-  type PhoneCountryFilterId,
-} from '@/lib/contacts/country-filters';
-import { fetchCountryContacts } from '@/lib/contacts/fetch-country-contacts';
+import { audienceCountries } from '@/lib/contacts/country-filters';
+import type {
+  AudienceConfig,
+  PresendCheck,
+  PresendPayload,
+  VariableMapping,
+} from '@/hooks/use-broadcast-sending';
 import { toast } from 'sonner';
 
 const TEST_PHONE_KEY = 'wacrm.broadcastTestPhone';
-
-interface AudienceConfig {
-  type: string;
-  tagIds?: string[];
-  csvContacts?: { phone: string; name?: string }[];
-  phoneCountry?: PhoneCountryFilterId;
-  phoneCountries?: PhoneCountryFilterId[];
-  excludedContactIds?: string[];
-  excludeTagIds?: string[];
-}
 
 interface Step4Props {
   name: string;
@@ -43,6 +43,9 @@ interface Step4Props {
   template: MessageTemplate;
   audience: AudienceConfig;
   onSend: () => void;
+  variables: Record<string, VariableMapping>;
+  /** Reach + would-fail/skipped counts; never sends or writes. */
+  checkAudience: (payload: PresendPayload) => Promise<PresendCheck>;
   /** Send the template once to a phone; resolves to an error or null. */
   onSendTest?: (phone: string) => Promise<string | null>;
   onSaveDraft?: () => void;
@@ -60,6 +63,8 @@ export function Step4ScheduleSend({
   template,
   audience,
   onSend,
+  variables,
+  checkAudience,
   onSendTest,
   onSaveDraft,
   onBack,
@@ -71,7 +76,7 @@ export function Step4ScheduleSend({
   const t = useTranslations('Broadcasts.wizard');
   const numbers = useWhatsAppNumbers();
   const [showConfirm, setShowConfirm] = useState(false);
-  const [estimatedReach, setEstimatedReach] = useState<number>(0);
+  const [check, setCheck] = useState<PresendCheck | null>(null);
   const [loadingReach, setLoadingReach] = useState(true);
   // Remembered per browser so the tester doesn't retype their number.
   const [testPhone, setTestPhone] = useState(() => {
@@ -103,58 +108,23 @@ export function Step4ScheduleSend({
     }
   }
 
+  // The hook hands back a fresh function each render; reading it through
+  // an effect event keeps the check tied to template/audience/variables.
+  const runCheck = useEffectEvent((p: PresendPayload) => checkAudience(p));
   useEffect(() => {
-    async function calculateReach() {
-      setLoadingReach(true);
-      try {
-        const supabase = createClient();
-
-        if (audience.type === 'all') {
-          const { count } = await supabase
-            .from('contacts')
-            .select('*', { count: 'exact', head: true });
-          setEstimatedReach(count ?? 0);
-        } else if (
-          audience.type === 'tags' &&
-          audience.tagIds &&
-          audience.tagIds.length > 0
-        ) {
-          const { data: contactTags } = await supabase
-            .from('contact_tags')
-            .select('contact_id')
-            .in('tag_id', audience.tagIds);
-
-          const uniqueIds = new Set(
-            (contactTags ?? []).map((ct) => ct.contact_id)
-          );
-          setEstimatedReach(uniqueIds.size);
-        } else if (audience.type === 'csv' && audience.csvContacts) {
-          setEstimatedReach(audience.csvContacts.length);
-        } else if (audience.type === 'country') {
-          // Same resolution the sender uses: selected countries minus
-          // excluded tags minus contacts unticked in the review list.
-          try {
-            const excluded = new Set(audience.excludedContactIds ?? []);
-            const rows = await fetchCountryContacts(
-              supabase,
-              audienceCountries(audience),
-              audience.excludeTagIds ?? [],
-            );
-            setEstimatedReach(rows.filter((c) => !excluded.has(c.id)).length);
-          } catch {
-            toast.error(t('selectAudience.errorEstimate'));
-            setEstimatedReach(0);
-          }
-        } else {
-          setEstimatedReach(0);
-        }
-      } finally {
-        setLoadingReach(false);
-      }
-    }
-
-    calculateReach();
-  }, [audience, t]);
+    let cancelled = false;
+    setLoadingReach(true);
+    runCheck({ template, audience, variables })
+      .then((c) => !cancelled && setCheck(c))
+      .catch(() => {
+        if (!cancelled) toast.error(t('selectAudience.errorEstimate'));
+      })
+      .finally(() => !cancelled && setLoadingReach(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [template, audience, variables, t]);
+  const estimatedReach = check?.total ?? 0;
 
   const audienceLabel =
     audience.type === 'all'
@@ -260,6 +230,40 @@ export function Step4ScheduleSend({
           </div>
         </div>
       </div>
+
+      {/* Pre-send warnings: contacts Meta will reject, contacts we skip */}
+      {check && (check.missing.length > 0 || check.optedOut > 0) && (
+        <div
+          role="alert"
+          className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4"
+        >
+          {check.missing.map((m) => (
+            <div key={m.key} className="flex items-start gap-2 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground">
+                  {t('scheduleSend.warnMissing', { count: m.count, variable: `{{${m.key}}}` })}
+                </p>
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="text-primary mt-0.5 text-xs font-medium hover:underline"
+                >
+                  {t('scheduleSend.addFallback')}
+                </button>
+              </div>
+            </div>
+          ))}
+          {check.optedOut > 0 && (
+            <div className="flex items-start gap-2 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <p className="text-foreground">
+                {t('scheduleSend.warnOptedOut', { count: check.optedOut })}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Test send — the real template, to one number, before the campaign */}
       {onSendTest && (

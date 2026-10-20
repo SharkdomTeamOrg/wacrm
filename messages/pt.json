@@ -994,7 +994,10 @@
         "testHint": "Envia esta mensagem exata para um número primeiro para conferir o texto, as variáveis e o cabeçalho no seu celular. Não conta na transmissão.",
         "testPlaceholder": "+55 11 91234 5678",
         "testSend": "Enviar teste",
-        "testSent": "Teste enviado. Confira o WhatsApp nesse celular."
+        "testSent": "Teste enviado. Confira o WhatsApp nesse celular.",
+        "warnMissing": "{count, plural, =1 {1 contato não tem} other {# contatos não têm}} valor para {variable} nem valor alternativo. A Meta {count, plural, =1 {vai recusá-lo} other {vai recusá-los}}.",
+        "addFallback": "Adicionar valor alternativo em Personalizar",
+        "warnOptedOut": "{count, plural, =1 {1 contato optou} other {# contatos optaram}} por não receber marketing e {count, plural, =1 {será ignorado} other {serão ignorados}}."
       }
     }
   },

@@ -243,11 +243,26 @@ function InboxPageInner() {
           setMessages((prev) => {
             // Avoid duplicates
             if (prev.some((m) => m.id === newMsg.id)) return prev;
-            // Replace optimistic message if it exists
-            const withoutOptimistic = prev.filter(
-              (m) => !m.id.startsWith("temp-")
+            // Swap out the ONE optimistic bubble this row confirms: same
+            // text if there is one (sends can confirm out of order), else
+            // the oldest pending of the same kind. Dropping every temp- row
+            // made other in-flight sends — and failed ones with their
+            // reason — vanish whenever any message landed, then pop back.
+            const pending = (m: Message) =>
+              m.id.startsWith("temp-") &&
+              m.status !== "failed" &&
+              m.content_type === newMsg.content_type;
+            const sameText = prev.findIndex(
+              (m) => pending(m) && m.content_text === newMsg.content_text,
             );
-            return [...withoutOptimistic, newMsg];
+            const i =
+              newMsg.sender_type === "customer"
+                ? -1
+                : sameText !== -1
+                  ? sameText
+                  : prev.findIndex(pending);
+            const rest = i === -1 ? prev : [...prev.slice(0, i), ...prev.slice(i + 1)];
+            return [...rest, newMsg];
           });
         }
 

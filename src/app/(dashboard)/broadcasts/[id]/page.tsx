@@ -46,7 +46,7 @@ import {
   groupFailures,
   skipOnImmediateRetry,
   type FailureReason,
-} from '@/lib/whatsapp/broadcast-failures';
+} from '@/lib/whatsapp/message-failures';
 
 interface StatCardProps {
   label: string;

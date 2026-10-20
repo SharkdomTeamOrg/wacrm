@@ -58,6 +58,7 @@ import { buildReplyPreview } from "./reply-quote";
 import { renderTemplateBody } from "@/lib/whatsapp/template-body";
 import { contactHandle } from "@/lib/whatsapp/wa-identity";
 import { toast } from "sonner";
+import { useFailureText } from "@/hooks/use-failure-text";
 import { useWhatsAppNumbers } from "@/hooks/use-whatsapp-numbers";
 import { flagForPhone, numberName } from "@/lib/whatsapp/number-label";
 
@@ -181,6 +182,22 @@ export function MessageThread({
       : undefined;
   const t = useTranslations("Inbox.messageThread");
   const tTimer = useTranslations("Inbox.sessionTimer");
+  const explainFailure = useFailureText();
+
+  // A refused send: say why in words, and keep the reason on the bubble
+  // (the toast disappears; the bubble's "Not delivered" line stays).
+  const failSend = useCallback(
+    (tempId: string, rawError: string, metaCode: number | null = null) => {
+      const f = explainFailure(rawError, metaCode);
+      toast.error(f.title, { description: f.advice });
+      onUpdateMessage(tempId, {
+        status: "failed",
+        error_code: metaCode,
+        error_title: f.raw,
+      });
+    },
+    [explainFailure, onUpdateMessage],
+  );
   const tQuote = useTranslations("Inbox.replyQuote");
 
   const { user, canSendMessages } = useAuth();
@@ -518,9 +535,7 @@ export function MessageThread({
         if (!res.ok) {
           const reason = payload?.error || `HTTP ${res.status}`;
           console.error("Failed to send message:", reason);
-          toast.error(t("sendFailed", { reason }));
-          // Mark the optimistic bubble as failed so the user sees what happened
-          onUpdateMessage(tempId, { status: "failed" });
+          failSend(tempId, reason, payload?.meta_code ?? null);
           return;
         }
 
@@ -531,11 +546,10 @@ export function MessageThread({
       } catch (err) {
         console.error("Failed to send message:", err);
         const reason = err instanceof Error ? err.message : "network error";
-        toast.error(t("sendFailed", { reason }));
-        onUpdateMessage(tempId, { status: "failed" });
+        failSend(tempId, reason);
       }
     },
-    [conversation, onNewMessage, onUpdateMessage, t]
+    [conversation, onNewMessage, onUpdateMessage, failSend]
   );
 
   const handleSendMedia = useCallback(
@@ -584,8 +598,7 @@ export function MessageThread({
         if (!res.ok) {
           const reason = data?.error || `HTTP ${res.status}`;
           console.error("Failed to send media:", reason);
-          toast.error(t("sendFailed", { reason }));
-          onUpdateMessage(tempId, { status: "failed" });
+          failSend(tempId, reason, data?.meta_code ?? null);
           // The upload never reached the recipient — GC the orphaned
           // object rather than leaving it in the public bucket forever.
           void deleteAccountMedia(CHAT_MEDIA_BUCKET, payload.path).catch(() => {});
@@ -596,12 +609,11 @@ export function MessageThread({
       } catch (err) {
         console.error("Failed to send media:", err);
         const reason = err instanceof Error ? err.message : "network error";
-        toast.error(t("sendFailed", { reason }));
-        onUpdateMessage(tempId, { status: "failed" });
+        failSend(tempId, reason);
         void deleteAccountMedia(CHAT_MEDIA_BUCKET, payload.path).catch(() => {});
       }
     },
-    [conversation, onNewMessage, onUpdateMessage, t],
+    [conversation, onNewMessage, onUpdateMessage, failSend],
   );
 
   const handleSendInteractive = useCallback(
@@ -641,8 +653,7 @@ export function MessageThread({
         if (!res.ok) {
           const reason = data?.error || `HTTP ${res.status}`;
           console.error("Failed to send interactive message:", reason);
-          toast.error(t("sendFailed", { reason }));
-          onUpdateMessage(tempId, { status: "failed" });
+          failSend(tempId, reason, data?.meta_code ?? null);
           return;
         }
 
@@ -650,11 +661,10 @@ export function MessageThread({
       } catch (err) {
         console.error("Failed to send interactive message:", err);
         const reason = err instanceof Error ? err.message : "network error";
-        toast.error(t("sendFailed", { reason }));
-        onUpdateMessage(tempId, { status: "failed" });
+        failSend(tempId, reason);
       }
     },
-    [conversation, onNewMessage, onUpdateMessage, t],
+    [conversation, onNewMessage, onUpdateMessage, failSend],
   );
 
   const handleStatusChange = useCallback(
@@ -732,8 +742,7 @@ export function MessageThread({
         if (!res.ok) {
           const reason = payload?.error || `HTTP ${res.status}`;
           console.error("Failed to send template:", reason);
-          toast.error(t("sendTemplateFailed", { reason }));
-          onUpdateMessage(tempId, { status: "failed" });
+          failSend(tempId, reason, payload?.meta_code ?? null);
           return;
         }
 
@@ -741,11 +750,10 @@ export function MessageThread({
       } catch (err) {
         console.error("Failed to send template:", err);
         const reason = err instanceof Error ? err.message : "network error";
-        toast.error(t("sendTemplateFailed", { reason }));
-        onUpdateMessage(tempId, { status: "failed" });
+        failSend(tempId, reason);
       }
     },
-    [conversation, onNewMessage, onUpdateMessage, t],
+    [conversation, onNewMessage, onUpdateMessage, failSend],
   );
 
   // Build a quick id → Message map so reply quotes can be rendered without

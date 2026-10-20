@@ -213,8 +213,6 @@
       "yesterday": "Yesterday",
       "customer": "Customer",
       "unknown": "Unknown",
-      "sendFailed": "Failed to send: {reason}",
-      "sendTemplateFailed": "Failed to send template: {reason}",
       "waitForSending": "Wait for the message to finish sending",
       "reactionFailed": "Reaction failed: {reason}",
       "assignmentUpdateFailed": "Failed to update assignment",
@@ -772,6 +770,26 @@
           "templateProblem": {
             "title": "Template problem",
             "advice": "The template's variables didn't match, or the template is paused, disabled or not approved in this language. Check it in Settings → Templates, then retry."
+          },
+          "outsideWindow": {
+            "title": "24-hour window closed",
+            "advice": "WhatsApp only allows approved templates outside the 24-hour window. Check this broadcast used an approved template."
+          },
+          "mediaProblem": {
+            "title": "Header file couldn't be sent",
+            "advice": "WhatsApp couldn't fetch or accept the header file. Check the link is public and the file type and size are allowed, then retry."
+          },
+          "policyBlock": {
+            "title": "Blocked by WhatsApp",
+            "advice": "Meta is restricting sends from this number (spam reports, policy or country rules). Check its status in WhatsApp Manager before sending more."
+          },
+          "metaTemporary": {
+            "title": "Temporary problem at Meta",
+            "advice": "WhatsApp had a hiccup. Use Retry failed in a few minutes."
+          },
+          "network": {
+            "title": "Connection dropped",
+            "advice": "These sends didn't finish because the connection dropped. Use Retry failed."
           },
           "rateLimit": {
             "title": "Sent too fast",
@@ -2237,5 +2255,74 @@
   },
   "DashboardShell": {
     "loading": "Loading..."
+  },
+  "MessageErrors": {
+    "metaSays": "WhatsApp said: {message}",
+    "reasons": {
+      "marketingLimit": {
+        "title": "Meta's marketing limit",
+        "advice": "This person has hit Meta's cap on marketing messages from all businesses. Wait at least 24 hours; wacrm retries once automatically if that's turned on."
+      },
+      "userStoppedMarketing": {
+        "title": "They turned off your marketing",
+        "advice": "They chose to stop marketing messages from you in WhatsApp. Utility templates and normal replies still work."
+      },
+      "undeliverable": {
+        "title": "Couldn't be delivered",
+        "advice": "The number may not be on WhatsApp, may use an old app version, or hasn't accepted WhatsApp's latest terms. Resending usually won't help."
+      },
+      "experiment": {
+        "title": "Held back by a Meta experiment",
+        "advice": "Meta is withholding some marketing messages as an experiment. Nothing to fix on your side."
+      },
+      "missingVariable": {
+        "title": "A template variable was empty",
+        "advice": "One of the template's variables had no value, often a missing name. Fill it in and send again."
+      },
+      "templateProblem": {
+        "title": "Template problem",
+        "advice": "The template's variables didn't match, or it's paused, disabled or not approved in this language. Check Settings → Templates."
+      },
+      "outsideWindow": {
+        "title": "24-hour window closed",
+        "advice": "They haven't messaged you in the last 24 hours, so WhatsApp only allows an approved template. Send a template instead."
+      },
+      "mediaProblem": {
+        "title": "File couldn't be sent",
+        "advice": "WhatsApp couldn't use this file. Check its type and size (images up to 5 MB, videos 16 MB, documents 100 MB) and try again."
+      },
+      "policyBlock": {
+        "title": "Blocked by WhatsApp",
+        "advice": "Meta is restricting sends from this number (spam reports, policy or country rules). Check the number's status in WhatsApp Manager."
+      },
+      "metaTemporary": {
+        "title": "Temporary problem at Meta",
+        "advice": "WhatsApp had a hiccup. Try again in a few minutes."
+      },
+      "network": {
+        "title": "Couldn't reach the server",
+        "advice": "The connection dropped before the message was sent. Check your internet and try again."
+      },
+      "rateLimit": {
+        "title": "Sending too fast",
+        "advice": "Meta throttled this number. Wait a minute and try again."
+      },
+      "invalidNumber": {
+        "title": "Invalid phone number",
+        "advice": "The contact's number is malformed or missing its country code (e.g. +91…). Fix it on the contact, then resend."
+      },
+      "authExpired": {
+        "title": "WhatsApp connection expired",
+        "advice": "The access token is invalid or expired. An admin needs to update it in Settings → WhatsApp."
+      },
+      "accountIssue": {
+        "title": "WhatsApp account issue",
+        "advice": "Meta reports a problem with the account or number (locked, payment, not registered). Check WhatsApp Manager."
+      },
+      "other": {
+        "title": "Not sent",
+        "advice": ""
+      }
+    }
   }
 }

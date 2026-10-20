@@ -213,8 +213,6 @@
       "yesterday": "Ontem",
       "customer": "Cliente",
       "unknown": "Desconhecido",
-      "sendFailed": "Falha ao enviar: {reason}",
-      "sendTemplateFailed": "Falha ao enviar o modelo: {reason}",
       "waitForSending": "Aguarde a mensagem terminar de ser enviada",
       "reactionFailed": "Falha na reação: {reason}",
       "assignmentUpdateFailed": "Falha ao atualizar a atribuição",
@@ -772,6 +770,26 @@
           "templateProblem": {
             "title": "Problema no modelo",
             "advice": "As variáveis não corresponderam, ou o modelo está pausado, desativado ou não aprovado neste idioma. Verifique em Configurações → Modelos e tente de novo."
+          },
+          "outsideWindow": {
+            "title": "Janela de 24 horas fechada",
+            "advice": "Fora da janela de 24 horas o WhatsApp só permite modelos aprovados. Confira se a transmissão usou um modelo aprovado."
+          },
+          "mediaProblem": {
+            "title": "Não foi possível enviar o arquivo do cabeçalho",
+            "advice": "O WhatsApp não conseguiu obter ou aceitar o arquivo do cabeçalho. Confira se o link é público e se o tipo e o tamanho são permitidos, e tente de novo."
+          },
+          "policyBlock": {
+            "title": "Bloqueado pelo WhatsApp",
+            "advice": "A Meta está restringindo envios deste número (denúncias de spam, políticas ou regras do país). Confira o status no WhatsApp Manager antes de enviar mais."
+          },
+          "metaTemporary": {
+            "title": "Problema temporário na Meta",
+            "advice": "O WhatsApp teve uma falha. Use Tentar falhas novamente em alguns minutos."
+          },
+          "network": {
+            "title": "Conexão caiu",
+            "advice": "Estes envios não terminaram porque a conexão caiu. Use Tentar falhas novamente."
           },
           "rateLimit": {
             "title": "Envio rápido demais",
@@ -2237,5 +2255,74 @@
   },
   "DashboardShell": {
     "loading": "Carregando..."
+  },
+  "MessageErrors": {
+    "metaSays": "O WhatsApp disse: {message}",
+    "reasons": {
+      "marketingLimit": {
+        "title": "Limite de marketing da Meta",
+        "advice": "Esta pessoa atingiu o limite da Meta de mensagens de marketing de todas as empresas. Aguarde pelo menos 24 horas; o wacrm tenta de novo uma vez automaticamente se estiver ativado."
+      },
+      "userStoppedMarketing": {
+        "title": "Desativou seu marketing",
+        "advice": "Escolheu parar de receber suas mensagens de marketing no WhatsApp. Modelos de utilidade e respostas normais continuam funcionando."
+      },
+      "undeliverable": {
+        "title": "Não foi possível entregar",
+        "advice": "O número pode não ter WhatsApp, usar uma versão antiga ou não ter aceitado os termos mais recentes. Reenviar geralmente não ajuda."
+      },
+      "experiment": {
+        "title": "Retida por um experimento da Meta",
+        "advice": "A Meta está retendo algumas mensagens de marketing como experimento. Não há nada a corrigir."
+      },
+      "missingVariable": {
+        "title": "Uma variável do modelo estava vazia",
+        "advice": "Uma das variáveis do modelo ficou sem valor, geralmente falta o nome. Preencha e envie de novo."
+      },
+      "templateProblem": {
+        "title": "Problema no modelo",
+        "advice": "As variáveis não correspondem, ou o modelo está pausado, desativado ou não aprovado neste idioma. Confira Configurações → Modelos."
+      },
+      "outsideWindow": {
+        "title": "Janela de 24 horas fechada",
+        "advice": "A pessoa não enviou mensagem nas últimas 24 horas, então o WhatsApp só permite um modelo aprovado. Envie um modelo."
+      },
+      "mediaProblem": {
+        "title": "Não foi possível enviar o arquivo",
+        "advice": "O WhatsApp não conseguiu usar este arquivo. Confira o tipo e o tamanho (imagens até 5 MB, vídeos 16 MB, documentos 100 MB) e tente de novo."
+      },
+      "policyBlock": {
+        "title": "Bloqueado pelo WhatsApp",
+        "advice": "A Meta está restringindo envios deste número (denúncias de spam, políticas ou regras do país). Confira o status no WhatsApp Manager."
+      },
+      "metaTemporary": {
+        "title": "Problema temporário na Meta",
+        "advice": "O WhatsApp teve uma falha. Tente de novo em alguns minutos."
+      },
+      "network": {
+        "title": "Não foi possível conectar ao servidor",
+        "advice": "A conexão caiu antes de a mensagem ser enviada. Confira sua internet e tente de novo."
+      },
+      "rateLimit": {
+        "title": "Envios rápidos demais",
+        "advice": "A Meta limitou este número. Aguarde um minuto e tente de novo."
+      },
+      "invalidNumber": {
+        "title": "Número de telefone inválido",
+        "advice": "O número do contato está mal formatado ou sem o código do país (ex.: +55…). Corrija no contato e reenvie."
+      },
+      "authExpired": {
+        "title": "A conexão do WhatsApp expirou",
+        "advice": "O token de acesso é inválido ou expirou. Um administrador precisa atualizá-lo em Configurações → WhatsApp."
+      },
+      "accountIssue": {
+        "title": "Problema na conta do WhatsApp",
+        "advice": "A Meta informa um problema com a conta ou o número (bloqueio, pagamento, não registrado). Confira o WhatsApp Manager."
+      },
+      "other": {
+        "title": "Não enviada",
+        "advice": ""
+      }
+    }
   }
 }

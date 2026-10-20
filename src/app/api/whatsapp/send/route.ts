@@ -202,7 +202,8 @@ export async function POST(request: Request) {
     } catch (err) {
       if (err instanceof SendMessageError) {
         return NextResponse.json(
-          { error: err.message },
+          // meta_code lets the inbox explain the failure (message-failures).
+          { error: err.message, meta_code: err.metaCode },
           { status: err.status }
         )
       }

@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Send, Loader2, Users, Save } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Users, Save, FlaskConical, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useWhatsAppNumbers } from '@/hooks/use-whatsapp-numbers';
 import { flagForPhone, numberName } from '@/lib/whatsapp/number-label';
@@ -24,6 +24,8 @@ import {
 } from '@/lib/contacts/country-filters';
 import { fetchCountryContacts } from '@/lib/contacts/fetch-country-contacts';
 import { toast } from 'sonner';
+
+const TEST_PHONE_KEY = 'wacrm.broadcastTestPhone';
 
 interface AudienceConfig {
   type: string;
@@ -41,6 +43,8 @@ interface Step4Props {
   template: MessageTemplate;
   audience: AudienceConfig;
   onSend: () => void;
+  /** Send the template once to a phone; resolves to an error or null. */
+  onSendTest?: (phone: string) => Promise<string | null>;
   onSaveDraft?: () => void;
   onBack: () => void;
   isProcessing: boolean;
@@ -56,6 +60,7 @@ export function Step4ScheduleSend({
   template,
   audience,
   onSend,
+  onSendTest,
   onSaveDraft,
   onBack,
   isProcessing,
@@ -68,6 +73,35 @@ export function Step4ScheduleSend({
   const [showConfirm, setShowConfirm] = useState(false);
   const [estimatedReach, setEstimatedReach] = useState<number>(0);
   const [loadingReach, setLoadingReach] = useState(true);
+  // Remembered per browser so the tester doesn't retype their number.
+  const [testPhone, setTestPhone] = useState(() => {
+    try {
+      return localStorage.getItem(TEST_PHONE_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function handleSendTest() {
+    if (!onSendTest) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      localStorage.setItem(TEST_PHONE_KEY, testPhone.trim());
+    } catch {}
+    try {
+      const error = await onSendTest(testPhone.trim());
+      setTestResult(
+        error ? { ok: false, text: error } : { ok: true, text: t('scheduleSend.testSent') }
+      );
+    } catch (err) {
+      setTestResult({ ok: false, text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setTesting(false);
+    }
+  }
 
   useEffect(() => {
     async function calculateReach() {
@@ -226,6 +260,45 @@ export function Step4ScheduleSend({
           </div>
         </div>
       </div>
+
+      {/* Test send — the real template, to one number, before the campaign */}
+      {onSendTest && (
+        <div className="border-border bg-card/50 space-y-2 rounded-xl border p-4">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="text-primary h-4 w-4" />
+            <p className="text-foreground text-sm font-medium">{t('scheduleSend.testTitle')}</p>
+          </div>
+          <p className="text-muted-foreground text-xs">{t('scheduleSend.testHint')}</p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              type="tel"
+              value={testPhone}
+              onChange={(e) => setTestPhone(e.target.value)}
+              placeholder={t('scheduleSend.testPlaceholder')}
+              aria-label={t('scheduleSend.testTitle')}
+              className="border-border bg-muted text-foreground placeholder:text-muted-foreground"
+            />
+            <Button
+              variant="outline"
+              onClick={handleSendTest}
+              disabled={!testPhone.trim() || testing || isProcessing}
+              className="border-border shrink-0"
+            >
+              {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {t('scheduleSend.testSend')}
+            </Button>
+          </div>
+          {testResult && (
+            <p
+              role="status"
+              className={`flex items-start gap-1.5 text-xs ${testResult.ok ? 'text-primary' : 'text-destructive'}`}
+            >
+              {testResult.ok && <Check className="mt-0.5 h-3 w-3 shrink-0" />}
+              {testResult.text}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Processing overlay */}
       {isProcessing && (

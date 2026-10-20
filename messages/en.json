@@ -989,7 +989,12 @@
         "estimatedReach": "Estimated Reach",
         "language": "Language",
         "confirmTitle": "Confirm Broadcast",
-        "confirmDesc": "You are about to send this broadcast to <b>{count, number}</b> {count, plural, =1 {contact} other {contacts}} using the <b>{template}</b> template. This action cannot be undone."
+        "confirmDesc": "You are about to send this broadcast to <b>{count, number}</b> {count, plural, =1 {contact} other {contacts}} using the <b>{template}</b> template. This action cannot be undone.",
+        "testTitle": "Send a test",
+        "testHint": "Sends this exact message to one number first, so you can check the text, variables and header on your phone. It isn't counted in the broadcast.",
+        "testPlaceholder": "+1 555 123 4567",
+        "testSend": "Send test",
+        "testSent": "Test sent. Check WhatsApp on that phone."
       }
     }
   },

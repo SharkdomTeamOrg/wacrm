@@ -989,7 +989,12 @@
         "estimatedReach": "Alcance estimado",
         "language": "Idioma",
         "confirmTitle": "Confirmar disparo",
-        "confirmDesc": "Você está prestes a enviar este disparo para <b>{count, number}</b> {count, plural, =1 {contato} other {contatos}} usando o modelo <b>{template}</b>. Esta ação não pode ser desfeita."
+        "confirmDesc": "Você está prestes a enviar este disparo para <b>{count, number}</b> {count, plural, =1 {contato} other {contatos}} usando o modelo <b>{template}</b>. Esta ação não pode ser desfeita.",
+        "testTitle": "Enviar um teste",
+        "testHint": "Envia esta mensagem exata para um número primeiro para conferir o texto, as variáveis e o cabeçalho no seu celular. Não conta na transmissão.",
+        "testPlaceholder": "+55 11 91234 5678",
+        "testSend": "Enviar teste",
+        "testSent": "Teste enviado. Confira o WhatsApp nesse celular."
       }
     }
   },

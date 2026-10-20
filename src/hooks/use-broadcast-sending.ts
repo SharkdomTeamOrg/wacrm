@@ -66,8 +66,15 @@ interface BroadcastPayload {
   whatsappConfigId?: string | null;
 }
 
+export type TestSendPayload = Pick<
+  BroadcastPayload,
+  'template' | 'variables' | 'headerMediaUrl' | 'whatsappConfigId'
+>;
+
 interface UseBroadcastSendingReturn {
   createAndSendBroadcast: (payload: BroadcastPayload) => Promise<string>;
+  /** Send the template once to `phone`; resolves to an error message or null. */
+  sendTestMessage: (payload: TestSendPayload, phone: string) => Promise<string | null>;
   isProcessing: boolean;
   progress: number;
 }
@@ -102,6 +109,18 @@ interface BroadcastApiResult {
 
 /** contactId → (customFieldId → value). */
 type CustomValueIndex = Map<string, Map<string, string>>;
+
+/** Send-time media header override, shared by real and test sends. */
+function headerMessageParams(
+  template: MessageTemplate,
+  headerMediaUrl: string | undefined
+): { headerMediaUrl: string } | undefined {
+  const t = template.header_type;
+  const url = headerMediaUrl?.trim();
+  return (t === 'image' || t === 'video' || t === 'document') && url
+    ? { headerMediaUrl: url }
+    : undefined;
+}
 
 function orFallback(value: string | undefined, fallback: string | undefined): string {
   return value?.trim() ? value : (fallback?.trim() ?? '');
@@ -525,14 +544,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       // URL on every send. Collected in the personalize step and applied
       // to all recipients; falls back to the template's stored URL on the
       // server when omitted.
-      const headerType = payload.template.header_type;
-      const isMediaHeader =
-        headerType === 'image' ||
-        headerType === 'video' ||
-        headerType === 'document';
-      const headerMediaUrl = payload.headerMediaUrl?.trim();
-      const messageParams =
-        isMediaHeader && headerMediaUrl ? { headerMediaUrl } : undefined;
+      const messageParams = headerMessageParams(payload.template, payload.headerMediaUrl);
 
       for (let i = 0; i < recipients.length; i += SEND_BATCH_SIZE) {
         const batch = recipients.slice(i, i + SEND_BATCH_SIZE);
@@ -669,5 +681,51 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     }
   }
 
-  return { createAndSendBroadcast, isProcessing, progress };
+  /**
+   * One real send of the template to a test phone, through the same
+   * route as the campaign. Variables resolve against the contact with
+   * that number when there is one, else a blank contact — so missing
+   * values and fallbacks show up exactly as recipients would see them.
+   * No broadcast row is created; no contact means no inbox entry.
+   */
+  async function sendTestMessage(payload: TestSendPayload, phone: string): Promise<string | null> {
+    const digits = phone.replace(/\D/g, '');
+    if (!digits) return 'Enter a phone number with country code';
+    const supabase = createClient();
+    const { data: match } = await supabase
+      .from('contacts')
+      .select('*')
+      .eq('phone_normalized', digits)
+      .maybeSingle();
+    const contact = (match as Contact | null) ?? ({ id: '', phone: `+${digits}` } as Contact);
+    const customValues = match
+      ? (await fetchCustomValueIndex(supabase, [match.id])).get(match.id)
+      : undefined;
+    const messageParams = headerMessageParams(payload.template, payload.headerMediaUrl);
+
+    const res = await fetch('/api/whatsapp/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recipients: [
+          {
+            phone: `+${digits}`,
+            params: resolveVariables(payload.variables, contact, customValues),
+            ...(messageParams ? { messageParams } : {}),
+          },
+        ],
+        template_name: payload.template.name,
+        template_language: payload.template.language ?? 'en_US',
+        whatsapp_config_id: payload.whatsappConfigId ?? null,
+      }),
+    });
+    const data: { error?: string; results?: BroadcastApiResult[] } = await res
+      .json()
+      .catch(() => ({}));
+    if (!res.ok) return data.error || `Test send failed (HTTP ${res.status})`;
+    const result = data.results?.[0];
+    return result?.status === 'sent' ? null : result?.error || 'Test send failed';
+  }
+
+  return { createAndSendBroadcast, sendTestMessage, isProcessing, progress };
 }

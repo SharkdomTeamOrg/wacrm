@@ -989,7 +989,12 @@
         "estimatedReach": "예상 도달 수",
         "language": "언어",
         "confirmTitle": "브로드캐스트 확인",
-        "confirmDesc": "<b>{template}</b> 템플릿으로 연락처 <b>{count, number}</b>명에게 이 브로드캐스트를 보내려고 합니다. 이 작업은 되돌릴 수 없습니다."
+        "confirmDesc": "<b>{template}</b> 템플릿으로 연락처 <b>{count, number}</b>명에게 이 브로드캐스트를 보내려고 합니다. 이 작업은 되돌릴 수 없습니다.",
+        "testTitle": "테스트 보내기",
+        "testHint": "이 메시지를 먼저 한 번호로 보내 휴대폰에서 텍스트, 변수, 헤더를 확인하세요. 브로드캐스트에는 포함되지 않습니다.",
+        "testPlaceholder": "+82 10 1234 5678",
+        "testSend": "테스트 보내기",
+        "testSent": "테스트를 보냈습니다. 해당 휴대폰의 WhatsApp을 확인하세요."
       }
     }
   },

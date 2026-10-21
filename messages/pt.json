@@ -1742,7 +1742,8 @@
       "removeCard": "Remover cartão",
       "cardBodyPlaceholder": "Texto do cartão (máx. 160 caracteres)",
       "cardUrlPlaceholder": "https://example.com/oferta",
-      "preview": "Pré-visualização"
+      "preview": "Pré-visualização",
+      "previewFormatHint": "Formatação do WhatsApp: *negrito*, _itálico_, ~tachado~. Use um asterisco só; com **duplo** o cliente vê os asteriscos extras."
     },
     "roles": {
       "admin": "Administrador",

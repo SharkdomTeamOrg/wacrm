@@ -6,12 +6,41 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  FileText,
   ImageIcon,
   Phone,
   Reply,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { waSegments } from "@/lib/whatsapp/wa-format";
 import type { CarouselCard, TemplateButton } from "@/types";
+
+/** Text with WhatsApp's *bold* / _italic_ / ~strike~ / ```mono``` applied. */
+function WaText({ text }: { text: string }) {
+  return (
+    <>
+      {waSegments(text).map((s, i) => (
+        <span
+          key={i}
+          className={cn(
+            s.bold && "font-semibold",
+            s.italic && "italic",
+            s.strike && "line-through",
+            s.mono && "font-mono text-[12px]",
+          )}
+        >
+          {s.text}
+        </span>
+      ))}
+    </>
+  );
+}
+
+export interface PreviewHeader {
+  format: "text" | "image" | "video" | "document";
+  text?: string;
+  mediaUrl?: string;
+}
 
 /** Replace {{N}} with the matching sample value, leaving unknown ones as-is. */
 export function fillSamples(text: string, samples: string[] | undefined): string {
@@ -22,20 +51,27 @@ const CARD_W = 220;
 const GAP = 8;
 
 /**
- * WhatsApp-style phone mock of a media-card carousel, used live in the
- * template editor and in every send preview. Interactive the way the
- * customer's phone is: swipe or use the arrows/dots, URL buttons open
- * the real link (so admins can check it), phone buttons dial, and
- * quick replies drop the customer's reply into the chat.
+ * WhatsApp-style phone mock of a template — standard (header, body,
+ * footer, buttons) or a media-card carousel — used live in the template
+ * editor and in send previews. Interactive the way the customer's phone
+ * is: swipe or use the arrows/dots, URL buttons open the real link (so
+ * admins can check it), phone buttons dial, and quick replies drop the
+ * customer's reply into the chat. Text is formatted like WhatsApp does.
  */
 export function CarouselPreview({
   body,
-  cards,
+  cards = [],
+  header,
+  footer,
+  buttons = [],
   businessName,
   className,
 }: {
   body: string;
-  cards: CarouselCard[];
+  cards?: CarouselCard[];
+  header?: PreviewHeader;
+  footer?: string;
+  buttons?: TemplateButton[];
   businessName?: string;
   className?: string;
 }) {
@@ -106,13 +142,44 @@ export function CarouselPreview({
 
       {/* Chat body */}
       <div className="space-y-2 bg-[#efeae2] px-2 py-3 dark:bg-[#0b141a]">
-        <div className="max-w-[85%] rounded-lg rounded-tl-none bg-white px-2.5 py-1.5 shadow-sm dark:bg-[#202c33]">
-          <p className="whitespace-pre-wrap break-words text-[13px] text-neutral-900 dark:text-neutral-100">
-            {body || <span className="opacity-50">Message body…</span>}
-          </p>
-          <p suppressHydrationWarning className="mt-0.5 text-right text-[10px] text-neutral-500">{time}</p>
+        <div className="max-w-[85%] overflow-hidden rounded-lg rounded-tl-none bg-white shadow-sm dark:bg-[#202c33]">
+          {header?.format === "image" || header?.format === "video" ? (
+            <div className="p-1 pb-0">
+              {header.mediaUrl ? (
+                header.format === "video" ? (
+                  <video src={header.mediaUrl} muted controls className="aspect-[1.91/1] w-full rounded bg-black object-cover" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={header.mediaUrl} alt="" className="aspect-[1.91/1] w-full rounded bg-neutral-200 object-cover" />
+                )
+              ) : (
+                <div className="flex aspect-[1.91/1] w-full items-center justify-center rounded bg-neutral-200 dark:bg-neutral-700">
+                  <ImageIcon className="h-6 w-6 text-neutral-400" />
+                </div>
+              )}
+            </div>
+          ) : header?.format === "document" ? (
+            <div className="m-1 mb-0 flex items-center gap-2 rounded bg-neutral-100 px-2 py-2 text-xs text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200">
+              <FileText className="h-4 w-4 shrink-0" />
+              <span className="truncate">Document</span>
+            </div>
+          ) : null}
+          <div className="px-2.5 py-1.5">
+            {header?.format === "text" && header.text && (
+              <p className="mb-1 break-words text-[13px] font-semibold text-neutral-900 dark:text-neutral-100">
+                {header.text}
+              </p>
+            )}
+            <p className="whitespace-pre-wrap break-words text-[13px] text-neutral-900 dark:text-neutral-100">
+              {body ? <WaText text={body} /> : <span className="opacity-50">Message body…</span>}
+            </p>
+            {footer && <p className="mt-1 break-words text-[11px] text-neutral-500">{footer}</p>}
+            <p suppressHydrationWarning className="mt-0.5 text-right text-[10px] text-neutral-500">{time}</p>
+          </div>
+          {buttons.map(buttonEl)}
         </div>
 
+        {cards.length > 0 && (
         <div className="relative">
           <div
             ref={rowRef}
@@ -139,7 +206,7 @@ export function CarouselPreview({
                   </div>
                 )}
                 <p className="min-h-10 whitespace-pre-wrap break-words px-2.5 py-2 text-xs text-neutral-900 dark:text-neutral-100">
-                  {card.body_text || <span className="opacity-50">Card text…</span>}
+                  {card.body_text ? <WaText text={card.body_text} /> : <span className="opacity-50">Card text…</span>}
                 </p>
                 {card.buttons.map(buttonEl)}
               </div>
@@ -169,6 +236,7 @@ export function CarouselPreview({
             </>
           )}
         </div>
+        )}
 
         {cards.length > 1 && (
           <div className="flex justify-center gap-1">

@@ -795,7 +795,7 @@ export function TemplateManager() {
       >
         <DialogContent
           className={`bg-popover border-border max-h-[90vh] overflow-y-auto ${
-            form.is_carousel ? 'sm:max-w-5xl' : 'sm:max-w-2xl'
+            'sm:max-w-5xl'
           }`}
         >
           <DialogHeader>
@@ -816,7 +816,7 @@ export function TemplateManager() {
             </div>
           )}
 
-          <div className={form.is_carousel ? 'grid gap-6 md:grid-cols-[minmax(0,1fr)_300px]' : ''}>
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_300px]">
           <div className="space-y-4 py-2 min-w-0">
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t('templateName')}</Label>
@@ -1281,16 +1281,26 @@ export function TemplateManager() {
               }}
             />
           </div>
-          {form.is_carousel && (
-            <aside className="space-y-2 self-start py-2 md:sticky md:top-0">
-              <Label className="text-muted-foreground">{t('preview')}</Label>
-              <CarouselPreview
-                body={fillSamples(form.body_text, form.body_samples)}
-                cards={form.cards}
-                businessName={businessName}
-              />
-            </aside>
-          )}
+          <aside className="space-y-2 self-start py-2 md:sticky md:top-0">
+            <Label className="text-muted-foreground">{t('preview')}</Label>
+            <CarouselPreview
+              body={fillSamples(form.body_text, form.body_samples)}
+              cards={form.is_carousel ? form.cards : []}
+              header={
+                form.is_carousel || form.header_format === 'none'
+                  ? undefined
+                  : {
+                      format: form.header_format,
+                      text: fillSamples(form.header_content, [form.header_sample]),
+                      mediaUrl: form.header_media_url || undefined,
+                    }
+              }
+              footer={form.is_carousel ? undefined : form.footer_text}
+              buttons={form.is_carousel ? [] : form.buttons}
+              businessName={businessName}
+            />
+            <p className="text-[11px] text-muted-foreground">{t('previewFormatHint')}</p>
+          </aside>
           </div>
 
           <DialogFooter className="bg-popover border-border">

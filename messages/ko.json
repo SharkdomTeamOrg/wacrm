@@ -1742,7 +1742,8 @@
       "removeCard": "카드 삭제",
       "cardBodyPlaceholder": "카드 텍스트 (최대 160자)",
       "cardUrlPlaceholder": "https://example.com/offer",
-      "preview": "미리보기"
+      "preview": "미리보기",
+      "previewFormatHint": "WhatsApp 서식: *굵게*, _기울임_, ~취소선~. 별표는 하나만 쓰세요. **두 개**를 쓰면 고객에게 남는 별표가 보입니다."
     },
     "roles": {
       "admin": "관리자",

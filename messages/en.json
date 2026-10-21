@@ -1742,7 +1742,8 @@
       "removeCard": "Remove card",
       "cardBodyPlaceholder": "Card text (max 160 chars, e.g. 20% off dorm beds in Goa)",
       "cardUrlPlaceholder": "https://example.com/offer",
-      "preview": "Preview"
+      "preview": "Preview",
+      "previewFormatHint": "WhatsApp formatting: *bold*, _italic_, ~strikethrough~. Use single asterisks; **double** shows the extra stars to customers."
     },
     "roles": {
       "admin": "Admin",

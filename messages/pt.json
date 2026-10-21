@@ -1012,10 +1012,16 @@
         "testHint": "Envia esta mensagem exata para um número primeiro para conferir o texto, as variáveis e o cabeçalho no seu celular. Não conta na transmissão.",
         "testPlaceholder": "+55 11 91234 5678",
         "testSend": "Enviar teste",
-        "testSent": "Teste enviado. Confira o WhatsApp nesse celular.",
         "warnMissing": "{count, plural, =1 {1 contato não tem} other {# contatos não têm}} valor para {variable} nem valor alternativo. A Meta {count, plural, =1 {vai recusá-lo} other {vai recusá-los}}.",
         "addFallback": "Adicionar valor alternativo em Personalizar",
-        "warnOptedOut": "{count, plural, =1 {1 contato optou} other {# contatos optaram}} por não receber marketing e {count, plural, =1 {será ignorado} other {serão ignorados}}."
+        "warnOptedOut": "{count, plural, =1 {1 contato optou} other {# contatos optaram}} por não receber marketing e {count, plural, =1 {será ignorado} other {serão ignorados}}.",
+        "test_accepted": "Aceita pelo WhatsApp. Aguardando a entrega…",
+        "test_delivered": "Entregue no celular.",
+        "test_read": "Entregue e lida.",
+        "test_untracked": "Aceita pelo WhatsApp. Este número não é um contato salvo, então a entrega não pode ser acompanhada aqui. Confira o celular.",
+        "test_noReport": "Aceita pelo WhatsApp, mas ainda sem relatório de entrega. Confira o celular; se falhar, o motivo aparecerá no chat do contato.",
+        "testFilledFrom": "Não é um contato salvo, então as variáveis foram preenchidas com {name}.",
+        "testMarketingLimit": "Este número recebeu mensagens de marketing demais recentemente, então a Meta reteve esta. Testes não são reenviados. Teste com um modelo de utilidade ou com um número que não recebeu marketing recentemente."
       }
     }
   },

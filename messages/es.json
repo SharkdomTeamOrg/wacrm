@@ -1012,10 +1012,16 @@
         "testHint": "Envía este mensaje exacto a un número primero para revisar el texto, las variables y el encabezado en tu teléfono. No cuenta en la difusión.",
         "testPlaceholder": "+34 600 123 456",
         "testSend": "Enviar prueba",
-        "testSent": "Prueba enviada. Revisa WhatsApp en ese teléfono.",
         "warnMissing": "{count, plural, =1 {1 contacto no tiene} other {# contactos no tienen}} valor para {variable} ni valor alternativo. Meta {count, plural, =1 {lo rechazará} other {los rechazará}}.",
         "addFallback": "Añadir un valor alternativo en Personalizar",
-        "warnOptedOut": "{count, plural, =1 {1 contacto se dio} other {# contactos se dieron}} de baja del marketing y se omitirán."
+        "warnOptedOut": "{count, plural, =1 {1 contacto se dio} other {# contactos se dieron}} de baja del marketing y se omitirán.",
+        "test_accepted": "Aceptado por WhatsApp. Esperando la entrega…",
+        "test_delivered": "Entregado en el teléfono.",
+        "test_read": "Entregado y leído.",
+        "test_untracked": "Aceptado por WhatsApp. Este número no es un contacto guardado, así que no se puede seguir la entrega aquí. Revisa el teléfono.",
+        "test_noReport": "Aceptado por WhatsApp, pero aún no hay informe de entrega. Revisa el teléfono; si falla, el motivo aparecerá en el chat del contacto.",
+        "testFilledFrom": "No es un contacto guardado, así que las variables se rellenaron con {name}.",
+        "testMarketingLimit": "Este número recibió demasiados mensajes de marketing últimamente, así que Meta retuvo este. Las pruebas no se reintentan. Prueba con una plantilla de utilidad o con un número que no haya recibido marketing hace poco."
       }
     }
   },

@@ -1012,10 +1012,16 @@
         "testHint": "이 메시지를 먼저 한 번호로 보내 휴대폰에서 텍스트, 변수, 헤더를 확인하세요. 브로드캐스트에는 포함되지 않습니다.",
         "testPlaceholder": "+82 10 1234 5678",
         "testSend": "테스트 보내기",
-        "testSent": "테스트를 보냈습니다. 해당 휴대폰의 WhatsApp을 확인하세요.",
         "warnMissing": "{count}명의 연락처에 {variable} 값과 대체 값이 없습니다. Meta가 거부합니다.",
         "addFallback": "개인화에서 대체 값 추가",
-        "warnOptedOut": "{count}명의 연락처가 마케팅 수신을 거부하여 제외됩니다."
+        "warnOptedOut": "{count}명의 연락처가 마케팅 수신을 거부하여 제외됩니다.",
+        "test_accepted": "WhatsApp이 수락했습니다. 전달을 기다리는 중…",
+        "test_delivered": "휴대폰에 전달되었습니다.",
+        "test_read": "전달되고 읽었습니다.",
+        "test_untracked": "WhatsApp이 수락했습니다. 저장된 연락처가 아니어서 여기서 전달 상태를 추적할 수 없습니다. 휴대폰을 확인하세요.",
+        "test_noReport": "WhatsApp이 수락했지만 아직 전달 보고가 없습니다. 휴대폰을 확인하세요. 실패하면 이 연락처의 채팅에 이유가 표시됩니다.",
+        "testFilledFrom": "저장된 연락처가 아니어서 변수는 {name}의 정보로 채워졌습니다.",
+        "testMarketingLimit": "이 번호는 최근 마케팅 메시지를 너무 많이 받아 Meta가 이 메시지를 보류했습니다. 테스트는 재시도되지 않습니다. 유틸리티 템플릿이나 최근 마케팅을 받지 않은 번호로 테스트하세요."
       }
     }
   },

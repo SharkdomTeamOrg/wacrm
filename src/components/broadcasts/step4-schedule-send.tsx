@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useEffectEvent, useState } from 'react';
+import { useFailureText } from '@/hooks/use-failure-text';
+import { createClient } from '@/lib/supabase/client';
 import { MessageTemplate } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +31,7 @@ import { flagForPhone, numberName } from '@/lib/whatsapp/number-label';
 import { audienceCountries } from '@/lib/contacts/country-filters';
 import type {
   AudienceConfig,
+  TestSendResult,
   PresendCheck,
   PresendPayload,
   VariableMapping,
@@ -36,6 +39,16 @@ import type {
 import { toast } from 'sonner';
 
 const TEST_PHONE_KEY = 'wacrm.broadcastTestPhone';
+/** Stop waiting for a delivery report after this long. */
+const TEST_WATCH_MS = 90_000;
+
+type TestState =
+  | { phase: 'failed'; failure: ReturnType<ReturnType<typeof useFailureText>> }
+  | {
+      phase: 'accepted' | 'delivered' | 'read' | 'untracked' | 'noReport';
+      wamid: string;
+      filledFrom: string | null;
+    };
 
 interface Step4Props {
   name: string;
@@ -46,8 +59,8 @@ interface Step4Props {
   variables: Record<string, VariableMapping>;
   /** Reach + would-fail/skipped counts; never sends or writes. */
   checkAudience: (payload: PresendPayload) => Promise<PresendCheck>;
-  /** Send the template once to a phone; resolves to an error or null. */
-  onSendTest?: (phone: string) => Promise<string | null>;
+  /** Send the template once to a phone. */
+  onSendTest?: (phone: string) => Promise<TestSendResult>;
   onSaveDraft?: () => void;
   onBack: () => void;
   isProcessing: boolean;
@@ -87,26 +100,64 @@ export function Step4ScheduleSend({
     }
   });
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [test, setTest] = useState<TestState | null>(null);
+  const explainFailure = useFailureText();
 
   async function handleSendTest() {
     if (!onSendTest) return;
     setTesting(true);
-    setTestResult(null);
+    setTest(null);
     try {
       localStorage.setItem(TEST_PHONE_KEY, testPhone.trim());
     } catch {}
     try {
-      const error = await onSendTest(testPhone.trim());
-      setTestResult(
-        error ? { ok: false, text: error } : { ok: true, text: t('scheduleSend.testSent') }
+      const r = await onSendTest(testPhone.trim());
+      setTest(
+        r.ok
+          ? { phase: r.tracked ? 'accepted' : 'untracked', wamid: r.wamid, filledFrom: r.filledFrom }
+          : { phase: 'failed', failure: explainFailure(r.error) }
       );
     } catch (err) {
-      setTestResult({ ok: false, text: err instanceof Error ? err.message : String(err) });
+      setTest({ phase: 'failed', failure: explainFailure(err instanceof Error ? err.message : String(err)) });
     } finally {
       setTesting(false);
     }
   }
+
+  // Meta accepts first and reports delivery later (webhook → messages row).
+  // Watch the test's row until it's delivered, read or failed.
+  const testWamid = test?.phase === 'accepted' ? test.wamid : null;
+  useEffect(() => {
+    if (!testWamid) return;
+    const supabase = createClient();
+    const started = Date.now();
+    let stopped = false;
+    const tick = async () => {
+      const { data } = await supabase
+        .from('messages')
+        .select('status, error_code, error_title')
+        .eq('message_id', testWamid)
+        .limit(1)
+        .maybeSingle();
+      if (stopped) return;
+      const done = (next: TestState) => {
+        stopped = true;
+        setTest((prev) => (prev && 'wamid' in prev && prev.wamid === testWamid ? next : prev));
+      };
+      if (data?.status === 'delivered' || data?.status === 'read') {
+        done({ phase: data.status, wamid: testWamid, filledFrom: null });
+      } else if (data?.status === 'failed') {
+        done({ phase: 'failed', failure: explainFailure(data.error_title, data.error_code) });
+      } else if (Date.now() - started > TEST_WATCH_MS) {
+        done({ phase: 'noReport', wamid: testWamid, filledFrom: null });
+      }
+    };
+    const id = setInterval(tick, 2000);
+    return () => {
+      stopped = true;
+      clearInterval(id);
+    };
+  }, [testWamid, explainFailure]);
 
   // The hook hands back a fresh function each render; reading it through
   // an effect event keeps the check tied to template/audience/variables.
@@ -292,14 +343,42 @@ export function Step4ScheduleSend({
               {t('scheduleSend.testSend')}
             </Button>
           </div>
-          {testResult && (
-            <p
-              role="status"
-              className={`flex items-start gap-1.5 text-xs ${testResult.ok ? 'text-primary' : 'text-destructive'}`}
-            >
-              {testResult.ok && <Check className="mt-0.5 h-3 w-3 shrink-0" />}
-              {testResult.text}
-            </p>
+          {test && (
+            <div role="status" className="space-y-0.5 text-xs">
+              {test.phase === 'failed' ? (
+                <>
+                  <p className="text-destructive font-medium">{test.failure.title}</p>
+                  {test.failure.advice && (
+                    <p className="text-muted-foreground" title={test.failure.raw}>
+                      {/* Tests aren't auto-retried, so the generic advice would mislead. */}
+                      {test.failure.reason === 'marketingLimit'
+                        ? t('scheduleSend.testMarketingLimit')
+                        : test.failure.advice}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p
+                  className={`flex items-start gap-1.5 ${
+                    test.phase === 'delivered' || test.phase === 'read'
+                      ? 'text-primary'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  {test.phase === 'accepted' ? (
+                    <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" />
+                  ) : test.phase === 'delivered' || test.phase === 'read' ? (
+                    <Check className="mt-0.5 h-3 w-3 shrink-0" />
+                  ) : null}
+                  {t(`scheduleSend.test_${test.phase}`)}
+                </p>
+              )}
+              {test.phase !== 'failed' && test.filledFrom && (
+                <p className="text-muted-foreground">
+                  {t('scheduleSend.testFilledFrom', { name: test.filledFrom })}
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}

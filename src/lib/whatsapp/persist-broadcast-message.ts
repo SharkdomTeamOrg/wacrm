@@ -17,6 +17,8 @@ export interface PersistBroadcastMessageParams {
   /** Structured header/button values, when the sender used them. */
   messageParams?: unknown;
   whatsappMessageId: string;
+  /** False for test sends: no 24h auto-retry (template_send left empty). */
+  autoRetry?: boolean;
 }
 
 export async function persistBroadcastMessage(
@@ -42,11 +44,14 @@ export async function persistBroadcastMessage(
     content_type: 'template',
     content_text: contentText,
     template_name: params.templateName,
-    template_send: {
-      language: params.templateLanguage,
-      params: params.templateParams,
-      messageParams: params.messageParams ?? null,
-    },
+    template_send:
+      params.autoRetry === false
+        ? null
+        : {
+            language: params.templateLanguage,
+            params: params.templateParams,
+            messageParams: params.messageParams ?? null,
+          },
     message_id: params.whatsappMessageId,
     status: 'sent',
     created_at: createdAt,

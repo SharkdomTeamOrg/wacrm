@@ -240,7 +240,7 @@ export default function NewBroadcastPage() {
               checkAudience={checkAudience}
               onSendTest={(phone) =>
                 sendTestMessage(
-                  { template, variables, headerMediaUrl, whatsappConfigId: fromNumberId || null },
+                  { template, audience, variables, headerMediaUrl, whatsappConfigId: fromNumberId || null },
                   phone,
                 )
               }

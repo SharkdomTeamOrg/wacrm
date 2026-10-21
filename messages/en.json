@@ -1012,10 +1012,16 @@
         "testHint": "Sends this exact message to one number first, so you can check the text, variables and header on your phone. It isn't counted in the broadcast.",
         "testPlaceholder": "+1 555 123 4567",
         "testSend": "Send test",
-        "testSent": "Test sent. Check WhatsApp on that phone.",
         "warnMissing": "{count, plural, =1 {1 contact has} other {# contacts have}} no value for {variable} and no fallback. Meta will reject {count, plural, =1 {it} other {them}}.",
         "addFallback": "Add a fallback in Personalize",
-        "warnOptedOut": "{count, plural, =1 {1 contact has} other {# contacts have}} opted out of marketing and will be skipped."
+        "warnOptedOut": "{count, plural, =1 {1 contact has} other {# contacts have}} opted out of marketing and will be skipped.",
+        "test_accepted": "Accepted by WhatsApp. Waiting for delivery…",
+        "test_delivered": "Delivered to the phone.",
+        "test_read": "Delivered and read.",
+        "test_untracked": "Accepted by WhatsApp. This number isn't a saved contact, so delivery can't be tracked here. Check the phone.",
+        "test_noReport": "Accepted by WhatsApp, but no delivery report yet. Check the phone; if it fails, the reason will show in this contact’s chat.",
+        "testFilledFrom": "Not a saved contact, so the variables were filled from {name}.",
+        "testMarketingLimit": "This number has had too many marketing messages lately, so Meta held this one back. Tests aren't retried. Test with a Utility template, or a number that hasn't had marketing recently."
       }
     }
   },

@@ -107,15 +107,27 @@ export function presendCheck(
 
 export type TestSendPayload = Pick<
   BroadcastPayload,
-  'template' | 'variables' | 'headerMediaUrl' | 'whatsappConfigId'
+  'template' | 'audience' | 'variables' | 'headerMediaUrl' | 'whatsappConfigId'
 >;
+
+export type TestSendResult =
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      /** Meta's message id — the inbox row carries it when `tracked`. */
+      wamid: string;
+      /** Saved contact → recorded in their chat, so status updates arrive. */
+      tracked: boolean;
+      /** Not a saved contact: whose details filled the variables. */
+      filledFrom: string | null;
+    };
 
 interface UseBroadcastSendingReturn {
   createAndSendBroadcast: (payload: BroadcastPayload) => Promise<string>;
   /** Count reach + would-fail/skipped contacts without sending or writing. */
   checkAudience: (payload: PresendPayload) => Promise<PresendCheck>;
-  /** Send the template once to `phone`; resolves to an error message or null. */
-  sendTestMessage: (payload: TestSendPayload, phone: string) => Promise<string | null>;
+  /** Send the template once to `phone`. */
+  sendTestMessage: (payload: TestSendPayload, phone: string) => Promise<TestSendResult>;
   isProcessing: boolean;
   progress: number;
 }
@@ -732,23 +744,30 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
 
   /**
    * One real send of the template to a test phone, through the same
-   * route as the campaign. Variables resolve against the contact with
-   * that number when there is one, else a blank contact — so missing
-   * values and fallbacks show up exactly as recipients would see them.
-   * No broadcast row is created; no contact means no inbox entry.
+   * route as the campaign. A saved contact gets the message in their chat
+   * (never auto-retried) so its delivery status can be watched. Otherwise
+   * variables come from the first audience contact — what the step 3
+   * preview shows — so a typo'd or unsaved number still gets real values.
+   * No broadcast row is created.
    */
-  async function sendTestMessage(payload: TestSendPayload, phone: string): Promise<string | null> {
+  async function sendTestMessage(payload: TestSendPayload, phone: string): Promise<TestSendResult> {
     const digits = phone.replace(/\D/g, '');
-    if (!digits) return 'Enter a phone number with country code';
+    if (!digits) return { ok: false, error: 'Enter a phone number with country code' };
     const supabase = createClient();
     const { data: match } = await supabase
       .from('contacts')
       .select('*')
       .eq('phone_normalized', digits)
       .maybeSingle();
-    const contact = (match as Contact | null) ?? ({ id: '', phone: `+${digits}` } as Contact);
-    const customValues = match
-      ? (await fetchCustomValueIndex(supabase, [match.id])).get(match.id)
+    const usesContact = Object.values(payload.variables).some((v) => v.type !== 'static');
+    const sample =
+      (match as Contact | null) ??
+      (usesContact
+        ? (await resolveAudience(payload.audience, { dryRun: true }).catch(() => []))[0] ?? null
+        : null);
+    const contact = sample ?? ({ id: '', phone: `+${digits}` } as Contact);
+    const customValues = contact.id
+      ? (await fetchCustomValueIndex(supabase, [contact.id])).get(contact.id)
       : undefined;
     const messageParams = headerMessageParams(payload.template, payload.headerMediaUrl);
 
@@ -759,6 +778,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         recipients: [
           {
             phone: `+${digits}`,
+            ...(match ? { contact_id: match.id } : {}),
             params: resolveVariables(payload.variables, contact, customValues),
             ...(messageParams ? { messageParams } : {}),
           },
@@ -766,14 +786,23 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         template_name: payload.template.name,
         template_language: payload.template.language ?? 'en_US',
         whatsapp_config_id: payload.whatsappConfigId ?? null,
+        test: true,
       }),
     });
     const data: { error?: string; results?: BroadcastApiResult[] } = await res
       .json()
       .catch(() => ({}));
-    if (!res.ok) return data.error || `Test send failed (HTTP ${res.status})`;
+    if (!res.ok) return { ok: false, error: data.error || `Test send failed (HTTP ${res.status})` };
     const result = data.results?.[0];
-    return result?.status === 'sent' ? null : result?.error || 'Test send failed';
+    if (result?.status !== 'sent' || !result.whatsapp_message_id) {
+      return { ok: false, error: result?.error || 'Test send failed' };
+    }
+    return {
+      ok: true,
+      wamid: result.whatsapp_message_id,
+      tracked: !!match && !result.inbox_error,
+      filledFrom: !match && sample ? sample.name || sample.phone : null,
+    };
   }
 
   async function checkAudience(payload: PresendPayload): Promise<PresendCheck> {

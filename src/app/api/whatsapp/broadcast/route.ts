@@ -92,6 +92,9 @@ export async function POST(request: Request) {
       template_params,
       // Sending number (migration 044); the account default when omitted.
       whatsapp_config_id,
+      // Step 4 "Send a test": recorded in the inbox (so delivery can be
+      // tracked) but never auto-retried.
+      test,
     } = body
 
     // Normalize to a list of {phone, params} regardless of shape.
@@ -277,6 +280,7 @@ export async function POST(request: Request) {
               templateLanguage: resolvedTemplate.language,
               messageParams: recipient.messageParams,
               whatsappMessageId: sentMessageId,
+              autoRetry: test !== true,
             })
           } catch (error) {
             inboxError =

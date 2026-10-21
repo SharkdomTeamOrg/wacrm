@@ -577,13 +577,17 @@ function ConversationItem({
                   {conversation.unread_count}
                 </span>
               )}
-              <span
-                className={cn(
-                  "h-2 w-2 rounded-full",
-                  STATUS_COLORS[conversation.status]
-                )}
-                title={conversation.status}
-              />
+              {/* Open is the default, so only pending/closed get a dot — a
+                  purple dot on every row read as "unread" next to the badge. */}
+              {conversation.status !== "open" && (
+                <span
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    STATUS_COLORS[conversation.status]
+                  )}
+                  title={conversation.status}
+                />
+              )}
             </div>
           </div>
         </div>
